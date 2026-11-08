@@ -448,6 +448,9 @@ importers:
 
   lib/db:
     dependencies:
+      '@workspace/netsleuth-database':
+        specifier: workspace:*
+        version: link:../../packages/database
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)
@@ -497,6 +500,9 @@ importers:
       pg:
         specifier: ^8.16.3
         version: 8.23.1
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -507,6 +513,9 @@ importers:
       '@workspace/netsleuth-config':
         specifier: workspace:*
         version: link:../config
+      dotenv:
+        specifier: ^16.6.1
+        version: 16.6.1
       drizzle-kit:
         specifier: ^0.31.4
         version: 0.31.11
@@ -2694,6 +2703,10 @@ packages:
 
   dom-helpers@5.2.1:
     resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
+
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
 
   drizzle-kit@0.31.11:
     resolution: {integrity: sha512-YCYqxTLIB2OCqf6w9/Vef13baBVbwQIPcbT4Y56AfO6B9ajZhDhD8Jkveg/hJvT/iuMloKD/IYYkyMMNhr7Kqg==}
@@ -6156,6 +6169,8 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.29.10
       csstype: 3.2.3
+
+  dotenv@16.6.1: {}
 
   drizzle-kit@0.31.11:
     dependencies:

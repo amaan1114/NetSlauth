@@ -1,3 +1,4 @@
-// Reserved for Drizzle schema, migrations, and connection management.
-// Importing this package does not connect to a database.
-export {};
+export { createDatabase } from "./client.js";
+export type { Database } from "./client.js";
+export * from "./schema/index.js";
+export * from "./queries.js";

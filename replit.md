@@ -1,6 +1,6 @@
 # NetSleuth
 
-Security observability platform, currently scoped to monorepo foundation only.
+Security observability platform with monorepo foundation and database layer.
 
 ## NetSleuth foundation
 
@@ -16,8 +16,14 @@ Security observability platform, currently scoped to monorepo foundation only.
 - Shared strict TS and ESLint settings belong in `packages/config`.
   **Why:** applications should share one source of compiler/lint defaults.
 - See `README.md` for the complete file list, architecture, and run commands.
-- User scope: foundation only. Do not add authentication, database models,
+- Current scope includes the database layer. Do not add authentication, routes,
   monitoring logic, or dashboard features without a later request.
+- `packages/database` owns the schema and connection implementation; `lib/db` is
+  a compatibility wrapper. See `packages/database/README.md` for constraints.
+  **Why:** avoid competing starter and NetSleuth database implementations.
+- Always authorize workspace membership and scope database operations to the
+  workspace/project; the read helpers do not authenticate users or provide RLS.
+  **Why:** projects and agents belong to distinct tenant workspaces.
 - Keep the agent independent, detection logic outside controllers, configuration
   in environment variables, and all NetSleuth TypeScript configurations strict.
 - Never claim simulated events are real observations; keep the project portable

@@ -1,8 +1,9 @@
 # NetSleuth
 
 Foundation for an open-source, self-hostable security observability platform.
-This stage implements **only** workspace tooling and application entry points.
-It does not implement security monitoring.
+The monorepo and database layer are implemented; security monitoring is not.
+See [the database package](packages/database/README.md) for the complete schema,
+migrations, connection setup, and security boundaries.
 
 ## Requirements and installation
 
@@ -85,8 +86,8 @@ agent -> shared
 all five code workspaces -> config (development dependency only)
 ```
 
-All arrows are explicit `workspace:*` links. Shared/database packages currently
-export empty modules; these links establish boundaries without adding features.
+All arrows are explicit `workspace:*` links. Shared contracts remain a placeholder.
+The database package owns the schema, client, and workspace-scoped read helpers.
 The agent has no dependency on the API, frontend, or database package.
 To build the agent and only its prerequisites:
 
@@ -163,8 +164,9 @@ Agent ── HTTP event ingestion ──> API
 These connections are **planned, not implemented**. Socket.IO dependencies are
 declared, but no server, client, or event listeners are enabled. Shared Zod
 contracts belong in `packages/shared`; its entry point is intentionally empty.
-The database package declares Drizzle and PostgreSQL dependencies but has no
-schema, migrations, connection side effects, or credentials.
+The database package implements Drizzle/PostgreSQL schema and migration tooling.
+Importing it has no connection side effects; call `createDatabase()` to initialize
+a client with `DATABASE_URL`. `lib/db` delegates to it for starter compatibility.
 
 The API's `createApp` function is the future composition boundary. Organize
 future features into modules with transport/controllers, application services,
@@ -197,6 +199,6 @@ prepared; no UI components or dashboard features have been generated.
 - **Portability:** keep capture platform assumptions explicit and infrastructure
   configuration separate from application code.
 
-Authentication, models, migrations, ingestion, detections, PostgreSQL log
+Authentication, ingestion, detections, PostgreSQL log
 collection, packet capture, dashboards, Dockerfiles, and Compose are deferred.
 No simulated events are presented as real observations.

@@ -7,14 +7,21 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/schema/index.d.ts",
+      "import": "./dist/schema/index.js"
     }
   },
   "scripts": {
     "lint": "eslint . --config ../config/eslint.config.mjs",
-    "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "typecheck": "tsc --noEmit && tsc --project tsconfig.tools.json",
+    "build": "tsc",
+    "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",
+    "db:migrate": "drizzle-kit migrate --config ./drizzle.config.ts"
   },
   "dependencies": {
+    "zod": "catalog:",
     "drizzle-orm": "catalog:",
     "pg": "^8.16.3"
   },
@@ -24,6 +31,7 @@
     "@types/node": "catalog:",
     "@types/pg": "^8.15.5",
     "drizzle-kit": "^0.31.4",
+    "dotenv": "^16.6.1",
     "typescript": "~5.9.3"
   }
 }

@@ -6,7 +6,9 @@ if (!process.env.DATABASE_URL) {
 }
 
 export default defineConfig({
-  schema: path.join(__dirname, "./src/schema/index.ts"),
+  // Use the canonical source directly so Drizzle Kit does not load the
+  // compatibility wrapper through its CommonJS TypeScript loader.
+  schema: path.join(__dirname, "../../packages/database/src/schema/index.ts"),
   dialect: "postgresql",
   dbCredentials: {
     url: process.env.DATABASE_URL,
