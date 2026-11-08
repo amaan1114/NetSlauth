@@ -57,7 +57,9 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Keep NetSleuth server code simple: use `console.log` instead of Pino, use
+  Express with Node.js, and omit custom SIGINT/SIGTERM handlers.
+  **Why:** the user explicitly requested a simpler server setup.
 
 ## Gotchas
 
