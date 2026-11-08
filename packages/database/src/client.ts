@@ -1,4 +1,4 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema/index.js";
 
@@ -17,4 +17,5 @@ export function createDatabase(connectionString = process.env.DATABASE_URL) {
   return { db, pool };
 }
 
-export type Database = ReturnType<typeof createDatabase>["db"];
+// Queries work with either a pool-backed database or a transaction-bound client.
+export type Database = NodePgDatabase<typeof schema>;

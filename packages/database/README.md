@@ -28,6 +28,8 @@ drizzle/
     _journal.json
 tests/
   constraints.sql
+  constraints.test.ts
+  scopes.ts
 .env.example
 drizzle.config.ts
 package.json
@@ -163,13 +165,36 @@ Do not expose complete user rows as API responses.
 
 ## Verification
 
-The initial migration and `tests/constraints.sql` can be executed in a temporary
-PostgreSQL schema inside one transaction and rolled back. The verification harness
-must replace the migration's `"public".` qualifiers with the temporary schema and
-set a transaction-local search path before executing the SQL. Never run the test
-fixtures against an application's real tables.
+Run the opt-in integration test against a **disposable PostgreSQL database**
+(PostgreSQL 14+; the connecting role needs permission to create a schema):
+
+```sh
+# Provide TEST_DATABASE_URL securely in the process environment, then:
+pnpm --filter @workspace/netsleuth-database test:db
+```
+
+`TEST_DATABASE_URL` is required explicitly: the runner does not read `.env` or
+fall back to `DATABASE_URL`. Missing configuration or any failed assertion exits
+nonzero, rather than silently skipping. This command is not part of `pnpm test`,
+build, application startup, or migrations.
+
+The runner executes the generated `drizzle/0000_netsleuth_initial.sql` and
+`tests/constraints.sql` inside one transaction on one checked-out connection.
+Every run creates a unique schema, rewrites the migration's `"public".`
+qualifiers to it, and sets a transaction-local search path with **no public
+fallback**. It never seeds, truncates, or alters application tables, and never
+commits or writes a migration journal. A `finally` block rolls back, verifies
+the schema is gone, releases the client, and closes the pool, on success or
+failure. A broken rollback connection is destroyed to force server-side rollback.
+Connection and statement timeouts bound database waits.
 
 Checks cover membership/email uniqueness, per-agent event deduplication, port
 ranges, foreign keys, project-wide alerts, cross-project alert rejection,
 project-scoped fingerprints, timestamp ordering, workspace-scoped event reads,
-and cascade isolation. Test fixtures are not captured observations.
+and cascade isolation. The runner also imports the actual `src/queries.ts`
+helpers for agents, events, and alerts and executes them using the same
+transaction-bound Drizzle client. Three populated projects across two workspaces
+check both project and workspace isolation: matching scopes return exact fixture
+IDs, while mismatched workspace/project pairs return no rows in either direction.
+Test fixtures are not captured observations. Never run `constraints.sql` directly
+against application tables.

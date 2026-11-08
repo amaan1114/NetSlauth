@@ -17,21 +17,23 @@
     "lint": "eslint . --config ../config/eslint.config.mjs",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.tools.json",
     "build": "tsc",
+    "test:db": "tsx --test tests/constraints.test.ts",
     "db:generate": "drizzle-kit generate --config ./drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config ./drizzle.config.ts"
   },
   "dependencies": {
-    "zod": "catalog:",
     "drizzle-orm": "catalog:",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@workspace/netsleuth-config": "workspace:*",
-    "eslint": "^9.39.0",
     "@types/node": "catalog:",
     "@types/pg": "^8.15.5",
-    "drizzle-kit": "^0.31.4",
+    "@workspace/netsleuth-config": "workspace:*",
     "dotenv": "^16.6.1",
+    "drizzle-kit": "^0.31.4",
+    "eslint": "^9.39.0",
+    "tsx": "catalog:",
     "typescript": "~5.9.3"
   }
 }

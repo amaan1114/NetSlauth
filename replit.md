@@ -11,6 +11,8 @@ Security observability platform with monorepo, database, and backend foundations
 - Turborepo orchestrates NetSleuth build, lint, typecheck, test, and local dev.
   Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`. API foundation tests
   run with `pnpm --filter @workspace/netsleuth-api test`.
+  Database integration checks
+  are opt-in; see `packages/database/README.md` for `test:db`.
 - Keep retained starter workspaces separate from NetSleuth. Default build/lint/dev
   target NetSleuth; full typecheck includes retained starter workspaces.
   **Why:** starter preview services have separate routing/runtime requirements.
