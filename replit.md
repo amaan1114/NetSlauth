@@ -60,6 +60,9 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 - Keep NetSleuth server code simple: use `console.log` instead of Pino, use
   Express with Node.js, and omit custom SIGINT/SIGTERM handlers.
   **Why:** the user explicitly requested a simpler server setup.
+- Apply this simplicity to development source, including the running starter
+  server, not just compiled output. Development should run TypeScript source directly.
+  **Why:** the user clarified that source development code is what they want simplified.
 
 ## Gotchas
 
