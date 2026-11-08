@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.netsleuth.json",
+  "extends": "@workspace/netsleuth-config/base.json",
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",

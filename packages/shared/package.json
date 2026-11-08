@@ -10,6 +10,7 @@
     }
   },
   "scripts": {
+    "lint": "eslint . --config ../config/eslint.config.mjs",
     "typecheck": "tsc --noEmit",
     "build": "tsc"
   },
@@ -17,6 +18,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@workspace/netsleuth-config": "workspace:*",
+    "eslint": "^9.39.0",
     "typescript": "~5.9.3"
   }
 }

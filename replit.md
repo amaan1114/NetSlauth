@@ -6,9 +6,15 @@ Security observability platform, currently scoped to monorepo foundation only.
 
 - The requested applications live in `apps/web` (Next.js), `apps/api` (Express),
   and `apps/agent` (independent Node.js executable).
-- Shared and database package boundaries live in `packages/`; existing starter
+- Shared, database, and configuration package boundaries live in `packages/`; existing starter
   artifacts and libraries are preserved, not the product implementation.
-- Run `pnpm run typecheck:netsleuth` and `pnpm run build:netsleuth`.
+- Turborepo orchestrates NetSleuth build, lint, typecheck, test, and local dev.
+  Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`. No tests exist yet.
+- Keep retained starter workspaces separate from NetSleuth. Default build/lint/dev
+  target NetSleuth; full typecheck includes retained starter workspaces.
+  **Why:** starter preview services have separate routing/runtime requirements.
+- Shared strict TS and ESLint settings belong in `packages/config`.
+  **Why:** applications should share one source of compiler/lint defaults.
 - See `README.md` for the complete file list, architecture, and run commands.
 - User scope: foundation only. Do not add authentication, database models,
   monitoring logic, or dashboard features without a later request.

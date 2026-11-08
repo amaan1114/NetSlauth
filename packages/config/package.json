@@ -1,0 +1,20 @@
+{
+  "name": "@workspace/netsleuth-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./base.json": "./base.json",
+    "./eslint": "./eslint.config.mjs"
+  },
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "globals": "^16.5.0",
+    "typescript-eslint": "^8.46.0",
+    "typescript": "~5.9.3"
+  }
+}

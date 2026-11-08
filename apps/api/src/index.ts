@@ -4,16 +4,20 @@ import { z } from "zod";
 import { createApp } from "./app.js";
 
 const logger = pino();
+
 const config = z.object({
   HOST: z.string().min(1).default("0.0.0.0"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  
 }).parse(process.env);
 
 const server = createServer(createApp());
+
 server.on("error", (error) => {
   logger.fatal({ error }, "API failed to start");
   process.exitCode = 1;
 });
+
 server.listen(config.PORT, config.HOST, () => {
   logger.info({ host: config.HOST, port: config.PORT }, "NetSleuth API foundation started");
 });
