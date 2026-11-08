@@ -1,0 +1,28 @@
+{
+  "name": "@workspace/netsleuth-web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "build": "next build",
+    "start": "next start --hostname 0.0.0.0"
+  },
+  "dependencies": {
+    "next": "^16.2.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "tailwind-merge": "catalog:",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.14",
+    "tailwindcss": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "typescript": "~5.9.3"
+  }
+}

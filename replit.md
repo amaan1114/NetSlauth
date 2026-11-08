@@ -1,6 +1,23 @@
-# [Project name]
+# NetSleuth
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Security observability platform, currently scoped to monorepo foundation only.
+
+## NetSleuth foundation
+
+- The requested applications live in `apps/web` (Next.js), `apps/api` (Express),
+  and `apps/agent` (independent Node.js executable).
+- Shared and database package boundaries live in `packages/`; existing starter
+  artifacts and libraries are preserved, not the product implementation.
+- Run `pnpm run typecheck:netsleuth` and `pnpm run build:netsleuth`.
+- See `README.md` for the complete file list, architecture, and run commands.
+- User scope: foundation only. Do not add authentication, database models,
+  monitoring logic, or dashboard features without a later request.
+- Keep the agent independent, detection logic outside controllers, configuration
+  in environment variables, and all NetSleuth TypeScript configurations strict.
+- Never claim simulated events are real observations; keep the project portable
+  outside Replit.
+
+The sections below describe retained starter tooling, not NetSleuth features.
 
 ## Run & Operate
 
