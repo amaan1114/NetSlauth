@@ -11,6 +11,36 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /health:
+    get:
+      operationId: getApiHealth
+      tags: [health]
+      summary: API liveness
+      responses:
+        "200":
+          description: API is running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiHealthResponse"
+  /health/ready:
+    get:
+      operationId: getApiReadiness
+      tags: [health]
+      summary: PostgreSQL readiness
+      responses:
+        "200":
+          description: PostgreSQL is reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiReadinessResponse"
+        "503":
+          description: PostgreSQL is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +56,38 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    ApiHealthResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [status]
+          properties:
+            status: { type: string, const: ok }
+    ApiReadinessResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [database]
+          properties:
+            database: { type: string, const: connected }
+    ApiErrorResponse:
+      type: object
+      required: [success, statusCode, message]
+      properties:
+        success: { type: boolean, const: false }
+        statusCode: { type: integer }
+        message: { type: string }
+        errors: {}
     HealthStatus:
       type: object
       properties:

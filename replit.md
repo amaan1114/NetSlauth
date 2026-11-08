@@ -1,6 +1,6 @@
 # NetSleuth
 
-Security observability platform with monorepo foundation and database layer.
+Security observability platform with monorepo, database, and backend foundations.
 
 ## NetSleuth foundation
 
@@ -9,15 +9,20 @@ Security observability platform with monorepo foundation and database layer.
 - Shared, database, and configuration package boundaries live in `packages/`; existing starter
   artifacts and libraries are preserved, not the product implementation.
 - Turborepo orchestrates NetSleuth build, lint, typecheck, test, and local dev.
-  Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`. No tests exist yet.
+  Run `pnpm lint`, `pnpm typecheck`, and `pnpm build`. API foundation tests
+  run with `pnpm --filter @workspace/netsleuth-api test`.
 - Keep retained starter workspaces separate from NetSleuth. Default build/lint/dev
   target NetSleuth; full typecheck includes retained starter workspaces.
   **Why:** starter preview services have separate routing/runtime requirements.
 - Shared strict TS and ESLint settings belong in `packages/config`.
   **Why:** applications should share one source of compiler/lint defaults.
 - See `README.md` for the complete file list, architecture, and run commands.
-- Current scope includes the database layer. Do not add authentication, routes,
-  monitoring logic, or dashboard features without a later request.
+- Current scope includes the database and backend foundations with health routes.
+  Do not add authentication, feature routes, monitoring logic, or dashboard
+  features without a later request.
+- The managed API workflow runs `apps/api` through Turbo; starter source remains
+  preserved but is no longer the active backend.
+  **Why:** editing the NetSleuth backend must affect the server used in development.
 - `packages/database` owns the schema and connection implementation; `lib/db` is
   a compatibility wrapper. See `packages/database/README.md` for constraints.
   **Why:** avoid competing starter and NetSleuth database implementations.
@@ -63,8 +68,9 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-- Keep NetSleuth server code simple: use `console.log` instead of Pino, use
-  Express with Node.js, and omit custom SIGINT/SIGTERM handlers.
+- Keep NetSleuth server code simple: use `console.log` instead of Pino and use
+  Express with Node.js. The backend foundation brief explicitly requests basic
+  graceful shutdown; keep the signal handlers limited to closing server and pool.
   **Why:** the user explicitly requested a simpler server setup.
 - Apply this simplicity to development source, including the running starter
   server, not just compiled output. Development should run TypeScript source directly.

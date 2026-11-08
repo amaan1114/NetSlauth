@@ -1,13 +1,41 @@
 import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import { env } from "./config/env.js";
+import { globalErrorHandler } from "./middleware/globalErrorHandler.js";
+import { requestLogger } from "./middleware/requestLogger.js";
+import { checkDatabase } from "./services/database.js";
+import { HttpError } from "./utils/HttpError.js";
+import { HttpResponse } from "./utils/HttpResponse.js";
 
-// Composition boundary: future controllers receive services here.
-// Domain and detection logic must not depend on Express.
-export function createApp() {
+export function createApp(checkReady: () => Promise<void> = checkDatabase) {
   const app = express();
   app.disable("x-powered-by");
+  app.use(requestLogger);
+  app.use(helmet());
+  app.use(cors({ origin: env.CORS_ORIGINS }));
   app.use(express.json({ limit: "1mb" }));
-  app.get("/health", (_request, response) => {
-    response.json({ service: "netsleuth-api", status: "ok", stage: "foundation" });
+  app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+
+  const health = express.Router();
+  health.get("/health", (_req, res) => {
+    res.status(200).json(new HttpResponse(200, "API is running", { status: "ok" }));
   });
+  health.get("/health/ready", async (_req, res) => {
+    try {
+      await checkReady();
+    } catch {
+      throw new HttpError(503, "Database is unavailable");
+    }
+    res.status(200).json(new HttpResponse(200, "API is ready", { database: "connected" }));
+  });
+
+  app.use(health);
+  app.use("/api", health);
+  // Keep the original starter probe compatible; new endpoints use HttpResponse.
+  app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));
+
+  app.use((_req, _res, next) => next(new HttpError(404, "Route not found")));
+  app.use(globalErrorHandler);
   return app;
 }

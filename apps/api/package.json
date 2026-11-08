@@ -5,20 +5,28 @@
   "type": "module",
   "scripts": {
     "lint": "eslint . --config ../../packages/config/eslint.config.mjs",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/server.js",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@workspace/netsleuth-database": "workspace:*",
     "@workspace/netsleuth-shared": "workspace:*",
     "express": "^5.1.0",
+    "cors": "^2.8.6",
+    "helmet": "^8.1.0",
+    "dotenv": "^16.6.1",
+    "drizzle-orm": "catalog:",
     "socket.io": "^4.8.1",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.4",
     "@types/node": "catalog:",
     "@workspace/netsleuth-config": "workspace:*",
     "eslint": "^9.39.0",

@@ -1,9 +1,10 @@
 # NetSleuth
 
 Foundation for an open-source, self-hostable security observability platform.
-The monorepo and database layer are implemented; security monitoring is not.
+The monorepo, database layer, and backend foundation are implemented; security monitoring is not.
 See [the database package](packages/database/README.md) for the complete schema,
 migrations, connection setup, and security boundaries.
+See [the API package](apps/api/README.md) for backend structure and health routes.
 
 ## Requirements and installation
 
@@ -21,7 +22,8 @@ pnpm run typecheck
 pnpm run build
 ```
 
-No database, credentials, tcpdump, or Docker installation is needed for this stage.
+Typechecking/builds do not require a database connection. Running the API requires
+`DATABASE_URL`; packet capture and Docker are not required.
 
 ## Run each application
 
@@ -31,8 +33,8 @@ Run web and API in separate terminals:
 # Next.js, default port 3000; optionally set PORT
 pnpm --filter @workspace/netsleuth-web dev
 
-# Express, default port 4000; optionally set PORT and HOST
-pnpm --filter @workspace/netsleuth-api dev
+# Express, default port 4000; requires DATABASE_URL
+pnpm exec turbo run dev --filter=@workspace/netsleuth-api
 
 # Standalone agent entry point; prints its unimplemented status and exits
 pnpm --filter @workspace/netsleuth-agent start
@@ -41,14 +43,13 @@ pnpm --filter @workspace/netsleuth-agent start
 The agent's `start` command requires a build first. Its `dev` command uses
 `tsx watch` to rerun the entry point after edits; it does not start collection.
 After building, use `start` instead of `dev` for web and API to run compiled output.
-The API exposes only `GET /health`. A successful health response means the process
-is reachable, **not** that ingestion, detection, or database connectivity works.
+The API exposes liveness at `/health` and a real PostgreSQL check at
+`/health/ready`. Neither endpoint claims that ingestion or detection works.
 The agent does not run a background collector.
 
-These commands are portable local-development commands, not configured Replit
-preview services. Existing `artifacts/`, `lib/`, and `scripts/` are retained starter
-packages and are not the NetSleuth applications. Existing preview workflows still
-run those starters.
+These are portable local-development commands. The Replit API workflow now points
+at `apps/api` through Turbo. Existing `artifacts/`, `lib/`, and `scripts/` retain
+starter source/tooling; the component preview workflow remains unchanged.
 
 ## Turborepo orchestration
 
@@ -57,8 +58,8 @@ run those starters.
 - `pnpm typecheck`: compiles the retained starter library declarations first,
   then runs every available workspace typecheck through Turbo.
 - `pnpm lint`: runs ESLint across all six NetSleuth workspaces.
-- `pnpm test`: invokes the configured Turbo test task. **There are no test
-  scripts or test suites yet**; no test coverage is claimed.
+- `pnpm test`: invokes available workspace test scripts through Turbo, including
+  the backend foundation checks.
 - `pnpm exec turbo run dev --filter='./apps/*'`: local-only development
   orchestration; uses the same defaults as the individual commands above.
   The root `dev` script is an alias, not a Replit preview workflow.
@@ -86,7 +87,7 @@ agent -> shared
 all five code workspaces -> config (development dependency only)
 ```
 
-All arrows are explicit `workspace:*` links. Shared contracts remain a placeholder.
+All arrows are explicit `workspace:*` links. Shared response interfaces live in the shared package.
 The database package owns the schema, client, and workspace-scoped read helpers.
 The agent has no dependency on the API, frontend, or database package.
 To build the agent and only its prerequisites:

@@ -12,7 +12,7 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["PORT", "HOST"]
+      "passThroughEnv": ["PORT", "HOST", "DATABASE_URL", "NODE_ENV", "CORS_ORIGINS"]
     },
     "lint": {
       "dependsOn": ["^lint"],
@@ -25,7 +25,8 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
-      "env": ["CI"]
+      "env": ["CI", "NODE_ENV"],
+      "passThroughEnv": ["DATABASE_URL", "CORS_ORIGINS"]
     }
   }
 }
