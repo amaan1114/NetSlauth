@@ -2,8 +2,9 @@
 
 Small Express 5/TypeScript backend with cookie authentication, authorized
 workspace/project management, and agent registration/key authentication.
-Network event ingestion is implemented. Detections and Socket.IO application
-events are not implemented.
+Network event ingestion, initial rule-based detection, project database policies,
+and authorized alert listing are implemented. Socket.IO application events are
+not implemented.
 
 ## Structure
 
@@ -44,6 +45,13 @@ src/
     event.controller.ts
     event.service.ts
     event.validation.ts
+  modules/detections/
+    detection.service.ts
+  modules/alerts/
+    alert.routes.ts
+    alert.controller.ts
+    alert.service.ts
+    alert.validation.ts
   modules/README.md
   services/database.ts
   utils/
@@ -53,7 +61,7 @@ src/
   app.ts
   server.ts
   index.ts
-tests/{foundation,auth,auth-client,workspaces-projects,agents,events}.test.ts
+tests/{foundation,auth,auth-client,workspaces-projects,agents,events,detections}.test.ts
 .env.example
 ```
 
@@ -430,8 +438,9 @@ heartbeat update roll back, and the response is not successful.
 
 Errors use the existing global handler: 400 invalid input/JSON, 401
 missing/invalid/revoked agent key, 413 oversized body, or sanitized 500 for an
-unexpected database failure. The service adds no detection rules, Redis/Kafka,
-queues, collectors, or frontend functionality.
+unexpected database failure. After this ingestion transaction commits, the
+detection service below evaluates only newly inserted event IDs. There are no
+Redis/Kafka services, queues, collectors, or frontend changes.
 
 Integration tests use the real endpoint, middleware, and PostgreSQL in an
 isolated, rolled-back schema. They check single/batch persistence, supported
@@ -439,3 +448,123 @@ types, malformed data, full-batch rejection, size bounds, duplicate counts,
 UUID casing, agent isolation, heartbeat/retry behavior, revoked credentials,
 and rollback after a forced database heartbeat failure. Run:
 `pnpm --filter @workspace/netsleuth-api test`.
+
+## Initial detection engine
+
+`modules/detections/detection.service.ts` is called directly by ingestion after
+the event/heartbeat transaction commits. It loads the actual persisted rows by
+their new IDs, joined to agents in the specified project. Duplicate ingestion
+does not trigger detection. Detection has its own transaction and locks the
+project row to serialize alert generation and policy changes within a project.
+
+### Repeated authentication failures
+
+`AUTH_FAILURE_THRESHOLD = 5` and `AUTH_FAILURE_WINDOW_SECONDS = 60` are exported
+configuration constants at the top of the detection service.
+Only `AUTHENTICATION_FAILURE` counts. The same source/destination pair within
+one project must have at least five failures in an inclusive rolling 60-second
+window of **occurredAt**, not receipt time. Multiple agents in the same project
+can contribute; different projects, source IPs, or destination IPs cannot.
+The sliding window handles late/out-of-order events and does not use fixed
+minute buckets.
+
+The HIGH alert contains source/destination IPs, failure count, threshold, window
+duration/bounds, agent-provided event IDs, and persisted event/agent IDs and
+timestamps. It describes reported failures, not proof of an attack.
+
+### Unexpected database destinations
+
+One nullable JSONB column, `projects.database_policy`, is added by
+`packages/database/drizzle/0003_misty_adam_warlock.sql`. Existing projects default
+to NULL; no database destination or monitored port is hardcoded.
+
+These endpoints use user access cookies:
+
+| Method | Endpoint | Permission |
+| --- | --- | --- |
+| GET | `/api/v1/projects/:projectId/database-policy` | Workspace member |
+| PUT | `/api/v1/projects/:projectId/database-policy` | Workspace OWNER or ADMIN |
+
+PUT replaces the complete configuration:
+
+```json
+{
+  "databasePolicy": {
+    "databasePorts": [5432, 3306],
+    "allowedDestinations": [
+      { "ip": "198.51.100.20", "port": 5432, "protocol": "TCP" }
+    ]
+  }
+}
+```
+
+The monitored port list has 1–32 entries (1–65535); the allowlist has at most
+100 exact IP/port/TCP-or-UDP tuples. Allowed ports must appear in databasePorts.
+Equivalent IPv6 forms are normalized. Hostnames, CIDR ranges, and wildcard
+destinations are not supported. An empty allowlist permits no destinations on
+the monitored ports. `{ "databasePolicy": null }` disables Rule B.
+NULL is not equivalent to an empty allowlist: without a policy the engine
+cannot identify project-specific database ports and does not evaluate Rule B.
+
+Only `NETWORK_CONNECTION_ATTEMPT` and `NETWORK_CONNECTION_ESTABLISHED` events
+with a destination port and TCP/UDP protocol are evaluated, and only for a
+monitored database port. A destination outside the exact allowlist generates a
+MEDIUM alert with destination IP/port/protocol, source IP, event ID/type,
+connection-attempt versus established observation, and a policy snapshot.
+An attempt does not prove a successful database login; a monitored port alone
+does not prove which database software is running.
+
+### Alert deduplication and listing
+
+The existing `(projectId, fingerprint)` uniqueness constraint is reused.
+Fingerprints include rule and subject identity; no event ID is included in an
+equivalent-observation fingerprint. Authentication alerts group a source/
+destination pair; database alerts additionally identify the observing agent,
+destination port, and protocol.
+OPEN and ACKNOWLEDGED alerts update evidence and lastSeenAt in place.
+firstSeenAt is never overwritten, and older observations cannot regress
+lastSeenAt or newer evidence. RESOLVED alerts remain unchanged; this MVP does
+not automatically reopen them or create new incidents for the same fingerprint.
+No acknowledge/resolve API is added here.
+
+**GET `/api/v1/projects/:projectId/alerts?page=1&limit=20&severity=HIGH&status=OPEN`**
+
+Requires a user access cookie and current membership in the project's actual
+workspace. Agent keys cannot authenticate this endpoint. Unknown/inaccessible
+projects return 404 without revealing existence. Optional severity values are
+LOW/MEDIUM/HIGH/CRITICAL; status values are OPEN/ACKNOWLEDGED/RESOLVED.
+Page defaults to 1 (maximum 100000) and limit to 20 (maximum 100). Invalid inputs
+return 400. Results are sorted by lastSeenAt descending with an ID tie-breaker.
+The existing database alert-read helper is extended with validated filters and
+offset/limit, retaining its bounded, workspace/project-scoped default behavior.
+
+Success data:
+
+```json
+{
+  "alerts": [],
+  "pagination": { "page": 1, "limit": 20, "hasMore": false }
+}
+```
+
+As with other successful endpoints this sits inside the HttpResponse envelope.
+There is no new dashboard UI, ML, automatic blocking, or remediation.
+
+### Failure boundary and tests
+
+Ingestion and detection are deliberately separate transactions: detection only
+sees successfully persisted events. A detection failure returns a sanitized 500,
+but the events/heartbeat remain committed. A duplicate-only retry does not
+reprocess them. There is no durable detection backlog/recovery endpoint yet;
+the internal idempotent detection service can safely reprocess persisted IDs,
+but an authorized operational recovery flow is future work.
+
+Real PostgreSQL integration tests cover the four/five failure threshold,
+different sources/destinations/projects, time boundaries, late arrivals,
+multi-agent evidence, non-authentication events, policy permissions,
+allowlisted/unconfigured destinations, missing destination information,
+IPv6 normalization, duplicate ingestion, detection reprocessing, preserved
+firstSeenAt/monotonic lastSeenAt, resolved behavior, pagination/filtering,
+cross-workspace denial, and explicit failure after event persistence.
+Fixtures, temporary triggers, and schemas are rolled back; no real monitoring
+activity is manufactured.

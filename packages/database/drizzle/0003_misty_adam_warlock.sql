@@ -1,0 +1,2 @@
+ALTER TABLE "projects" ADD COLUMN "database_policy" jsonb;--> statement-breakpoint
+ALTER TABLE "projects" ADD CONSTRAINT "projects_database_policy_object" CHECK ("projects"."database_policy" IS NULL OR jsonb_typeof("projects"."database_policy") = 'object');

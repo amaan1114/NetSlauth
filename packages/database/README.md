@@ -47,7 +47,7 @@ All timestamps are `timestamptz` and exposed as JavaScript `Date` values.
 | users | id, name, email, passwordHash, createdAt, updatedAt |
 | workspaces | id, name, createdAt, updatedAt |
 | workspace_members | id, userId, workspaceId, role, createdAt |
-| projects | id, workspaceId, name, nullable description, createdAt, updatedAt |
+| projects | id, workspaceId, name, nullable description, nullable databasePolicy, createdAt, updatedAt |
 | agents | id, projectId, name, nullable apiKeyHash, nullable revokedAt, status, nullable lastHeartbeatAt, createdAt, updatedAt |
 | network_events | id, agentId, eventId, eventType, sourceIp, nullable sourcePort, destinationIp, nullable destinationPort, protocol, metadata, occurredAt, receivedAt |
 | security_alerts | id, projectId, nullable agentId, title, description, severity, status, ruleId, fingerprint, evidence, firstSeenAt, lastSeenAt, createdAt, updatedAt |
@@ -85,10 +85,10 @@ exists in this phase.
 - Alert `(agentId, projectId)` references the same pair on agents. An alert cannot
   name an agent from another project/workspace; NULL agent IDs permit project-wide
   alerts. The supporting unique agent pair is required for this composite FK.
-- Alerts are unique on `(projectId, fingerprint)`. Fingerprints must include rule
-  and subject/scope identity; repeated occurrences update the same alert, even
-  after resolution. Reopening versus creating a new incident is future detection
-  policy, not implemented here.
+- Alerts are unique on `(projectId, fingerprint)`. Fingerprints include rule
+  and subject/scope identity. The initial detection service updates equivalent
+  OPEN/ACKNOWLEDGED alerts while preserving firstSeenAt. RESOLVED records remain
+  unchanged; reopening/new-incident policy and status mutation APIs are deferred.
 - Alert indexes support project/status/severity, project/lastSeenAt, and agent.
 - Alert `lastSeenAt` cannot precede `firstSeenAt`.
 - Event metadata and alert evidence are JSONB objects. Do not put raw packets,
@@ -126,6 +126,10 @@ Generation is offline and does not require credentials. `db:migrate` does requir
 a valid connection URL. No migration runs on import, API startup, build, or deploy.
 The `0002_absurd_terrax.sql` migration adds nullable `api_key_hash` and `revoked_at`
 columns plus a unique hash constraint. Existing rows keep both fields NULL.
+`0003_misty_adam_warlock.sql` adds nullable `projects.database_policy` with an
+object-or-NULL check. The API validates the monitored port list and exact
+allowed IP/port/protocol tuples. NULL means no database policy is configured;
+the detection rule does not infer database destinations until configured.
 For an already-populated database created outside Drizzle's migration journal,
 do not replay the initial migration or stamp migration history blindly. Inspect
 its current schema and apply only reviewed missing changes. The development

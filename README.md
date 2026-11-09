@@ -210,7 +210,11 @@ Agent registration, project-scoped listing/details, credential revocation, and
 separate `X-Agent-Key` authentication middleware are also implemented.
 `POST /api/v1/ingest/events` accepts a single event or batch, persists validated
 events with duplicate counts, and updates agent heartbeat state atomically.
+It then calls the initial detection service for committed new events. Repeated
+authentication failures and database destinations outside project allowlists
+generate deduplicated alerts. Project policy configuration and a paginated,
+member-authorized alerts endpoint are available; see `apps/api/README.md`.
 
-Detections, PostgreSQL log
+Additional detection rules, PostgreSQL log
 collection, packet capture, dashboards, Dockerfiles, and Compose are deferred.
 No simulated events are presented as real observations.

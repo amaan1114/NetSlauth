@@ -9,10 +9,149 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List project alerts as a workspace member
+ */
+export const getAlertsQueryPageDefault = 1;
+export const getAlertsQueryPageMax = 100000;
+
+export const getAlertsQueryLimitDefault = 20;
+export const getAlertsQueryLimitMax = 100;
+
+
+
+export const GetAlertsQueryParams = zod.object({
+  "page": zod.number().int().min(1).max(getAlertsQueryPageMax).default(getAlertsQueryPageDefault),
+  "limit": zod.number().int().min(1).max(getAlertsQueryLimitMax).default(getAlertsQueryLimitDefault),
+  "severity": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+  "status": zod.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED']).optional()
+})
+
+export const GetAlertsResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "alerts": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "agentId": zod.string().uuid().nullable(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "severity": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  "status": zod.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED']),
+  "ruleId": zod.string(),
+  "fingerprint": zod.string(),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "firstSeenAt": zod.date(),
+  "lastSeenAt": zod.date(),
+  "createdAt": zod.date(),
+  "updatedAt": zod.date()
+})),
+  "pagination": zod.object({
+  "page": zod.number().int(),
+  "limit": zod.number().int(),
+  "hasMore": zod.boolean()
+})
+})
+})
+
+
+/**
+ * @summary Read project database policy as a workspace member
+ */
+export const GetDatabasePolicyParams = zod.object({
+  "projectId": zod.coerce.string().uuid()
+})
+
+export const getDatabasePolicyResponseDataDatabasePolicyOneDatabasePortsItemMax = 65535;
+
+export const getDatabasePolicyResponseDataDatabasePolicyOneDatabasePortsMax = 32;
+
+export const getDatabasePolicyResponseDataDatabasePolicyOneAllowedDestinationsItemPortMax = 65535;
+
+export const getDatabasePolicyResponseDataDatabasePolicyOneAllowedDestinationsMax = 100;
+
+
+
+export const GetDatabasePolicyResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "databasePolicy": zod.union([zod.object({
+  "databasePorts": zod.array(zod.number().int().min(1).max(getDatabasePolicyResponseDataDatabasePolicyOneDatabasePortsItemMax)).min(1).max(getDatabasePolicyResponseDataDatabasePolicyOneDatabasePortsMax),
+  "allowedDestinations": zod.array(zod.object({
+  "ip": zod.string().describe('A single IPv4 or IPv6 address'),
+  "port": zod.number().int().min(1).max(getDatabasePolicyResponseDataDatabasePolicyOneAllowedDestinationsItemPortMax),
+  "protocol": zod.enum(['TCP', 'UDP'])
+})).max(getDatabasePolicyResponseDataDatabasePolicyOneAllowedDestinationsMax).describe('Empty list denies all destinations on monitored ports. Allowed ports must be in databasePorts.')
+}),zod.null()])
+})
+})
+
+
+/**
+ * @summary Replace or disable database policy as workspace OWNER or ADMIN
+ */
+export const UpdateDatabasePolicyParams = zod.object({
+  "projectId": zod.coerce.string().uuid()
+})
+
+export const updateDatabasePolicyBodyDatabasePolicyOneDatabasePortsItemMax = 65535;
+
+export const updateDatabasePolicyBodyDatabasePolicyOneDatabasePortsMax = 32;
+
+export const updateDatabasePolicyBodyDatabasePolicyOneAllowedDestinationsItemPortMax = 65535;
+
+export const updateDatabasePolicyBodyDatabasePolicyOneAllowedDestinationsMax = 100;
+
+
+
+export const UpdateDatabasePolicyBody = zod.object({
+  "databasePolicy": zod.union([zod.object({
+  "databasePorts": zod.array(zod.number().int().min(1).max(updateDatabasePolicyBodyDatabasePolicyOneDatabasePortsItemMax)).min(1).max(updateDatabasePolicyBodyDatabasePolicyOneDatabasePortsMax),
+  "allowedDestinations": zod.array(zod.object({
+  "ip": zod.string().describe('A single IPv4 or IPv6 address'),
+  "port": zod.number().int().min(1).max(updateDatabasePolicyBodyDatabasePolicyOneAllowedDestinationsItemPortMax),
+  "protocol": zod.enum(['TCP', 'UDP'])
+})).max(updateDatabasePolicyBodyDatabasePolicyOneAllowedDestinationsMax).describe('Empty list denies all destinations on monitored ports. Allowed ports must be in databasePorts.')
+}),zod.null()])
+})
+
+export const updateDatabasePolicyResponseDataDatabasePolicyOneDatabasePortsItemMax = 65535;
+
+export const updateDatabasePolicyResponseDataDatabasePolicyOneDatabasePortsMax = 32;
+
+export const updateDatabasePolicyResponseDataDatabasePolicyOneAllowedDestinationsItemPortMax = 65535;
+
+export const updateDatabasePolicyResponseDataDatabasePolicyOneAllowedDestinationsMax = 100;
+
+
+
+export const UpdateDatabasePolicyResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "databasePolicy": zod.union([zod.object({
+  "databasePorts": zod.array(zod.number().int().min(1).max(updateDatabasePolicyResponseDataDatabasePolicyOneDatabasePortsItemMax)).min(1).max(updateDatabasePolicyResponseDataDatabasePolicyOneDatabasePortsMax),
+  "allowedDestinations": zod.array(zod.object({
+  "ip": zod.string().describe('A single IPv4 or IPv6 address'),
+  "port": zod.number().int().min(1).max(updateDatabasePolicyResponseDataDatabasePolicyOneAllowedDestinationsItemPortMax),
+  "protocol": zod.enum(['TCP', 'UDP'])
+})).max(updateDatabasePolicyResponseDataDatabasePolicyOneAllowedDestinationsMax).describe('Empty list denies all destinations on monitored ports. Allowed ports must be in databasePorts.')
+}),zod.null()])
+})
+})
+
+
+/**
  * Agent identity and project scope come only from X-Agent-Key.
  * The whole request is validated before writing. Inserts and heartbeat updates
  * are atomic; retries are deduplicated per agent/eventId.
  * Only newly inserted heartbeats update agent liveness using the server time.
+ * Detection runs synchronously after the event transaction commits, for newly inserted events only.
+ * If detection fails, this returns 500 but events remain persisted. Duplicate retries do not rerun detection.
  * Cookies and Authorization headers cannot authenticate this endpoint.
  * @summary Persist one event or a batch of up to 100 events from an authenticated agent
  */
@@ -272,6 +411,16 @@ export const CreateProjectBody = zod.object({
   "description": zod.string().max(createProjectBodyDescriptionMax).optional()
 })
 
+export const createProjectResponseDataProjectDatabasePolicyOneDatabasePortsItemMax = 65535;
+
+export const createProjectResponseDataProjectDatabasePolicyOneDatabasePortsMax = 32;
+
+export const createProjectResponseDataProjectDatabasePolicyOneAllowedDestinationsItemPortMax = 65535;
+
+export const createProjectResponseDataProjectDatabasePolicyOneAllowedDestinationsMax = 100;
+
+
+
 export const CreateProjectResponse = zod.object({
   "success": zod.literal(true),
   "statusCode": zod.number().int(),
@@ -282,6 +431,14 @@ export const CreateProjectResponse = zod.object({
   "workspaceId": zod.string().uuid(),
   "name": zod.string(),
   "description": zod.string().nullable(),
+  "databasePolicy": zod.union([zod.object({
+  "databasePorts": zod.array(zod.number().int().min(1).max(createProjectResponseDataProjectDatabasePolicyOneDatabasePortsItemMax)).min(1).max(createProjectResponseDataProjectDatabasePolicyOneDatabasePortsMax),
+  "allowedDestinations": zod.array(zod.object({
+  "ip": zod.string().describe('A single IPv4 or IPv6 address'),
+  "port": zod.number().int().min(1).max(createProjectResponseDataProjectDatabasePolicyOneAllowedDestinationsItemPortMax),
+  "protocol": zod.enum(['TCP', 'UDP'])
+})).max(createProjectResponseDataProjectDatabasePolicyOneAllowedDestinationsMax).describe('Empty list denies all destinations on monitored ports. Allowed ports must be in databasePorts.')
+}),zod.null()]),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -296,6 +453,16 @@ export const GetProjectsParams = zod.object({
   "workspaceId": zod.coerce.string().uuid()
 })
 
+export const getProjectsResponseDataProjectsItemDatabasePolicyOneDatabasePortsItemMax = 65535;
+
+export const getProjectsResponseDataProjectsItemDatabasePolicyOneDatabasePortsMax = 32;
+
+export const getProjectsResponseDataProjectsItemDatabasePolicyOneAllowedDestinationsItemPortMax = 65535;
+
+export const getProjectsResponseDataProjectsItemDatabasePolicyOneAllowedDestinationsMax = 100;
+
+
+
 export const GetProjectsResponse = zod.object({
   "success": zod.literal(true),
   "statusCode": zod.number().int(),
@@ -306,6 +473,14 @@ export const GetProjectsResponse = zod.object({
   "workspaceId": zod.string().uuid(),
   "name": zod.string(),
   "description": zod.string().nullable(),
+  "databasePolicy": zod.union([zod.object({
+  "databasePorts": zod.array(zod.number().int().min(1).max(getProjectsResponseDataProjectsItemDatabasePolicyOneDatabasePortsItemMax)).min(1).max(getProjectsResponseDataProjectsItemDatabasePolicyOneDatabasePortsMax),
+  "allowedDestinations": zod.array(zod.object({
+  "ip": zod.string().describe('A single IPv4 or IPv6 address'),
+  "port": zod.number().int().min(1).max(getProjectsResponseDataProjectsItemDatabasePolicyOneAllowedDestinationsItemPortMax),
+  "protocol": zod.enum(['TCP', 'UDP'])
+})).max(getProjectsResponseDataProjectsItemDatabasePolicyOneAllowedDestinationsMax).describe('Empty list denies all destinations on monitored ports. Allowed ports must be in databasePorts.')
+}),zod.null()]),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }))
@@ -320,6 +495,16 @@ export const GetProjectParams = zod.object({
   "projectId": zod.coerce.string().uuid()
 })
 
+export const getProjectResponseDataProjectDatabasePolicyOneDatabasePortsItemMax = 65535;
+
+export const getProjectResponseDataProjectDatabasePolicyOneDatabasePortsMax = 32;
+
+export const getProjectResponseDataProjectDatabasePolicyOneAllowedDestinationsItemPortMax = 65535;
+
+export const getProjectResponseDataProjectDatabasePolicyOneAllowedDestinationsMax = 100;
+
+
+
 export const GetProjectResponse = zod.object({
   "success": zod.literal(true),
   "statusCode": zod.number().int(),
@@ -330,6 +515,14 @@ export const GetProjectResponse = zod.object({
   "workspaceId": zod.string().uuid(),
   "name": zod.string(),
   "description": zod.string().nullable(),
+  "databasePolicy": zod.union([zod.object({
+  "databasePorts": zod.array(zod.number().int().min(1).max(getProjectResponseDataProjectDatabasePolicyOneDatabasePortsItemMax)).min(1).max(getProjectResponseDataProjectDatabasePolicyOneDatabasePortsMax),
+  "allowedDestinations": zod.array(zod.object({
+  "ip": zod.string().describe('A single IPv4 or IPv6 address'),
+  "port": zod.number().int().min(1).max(getProjectResponseDataProjectDatabasePolicyOneAllowedDestinationsItemPortMax),
+  "protocol": zod.enum(['TCP', 'UDP'])
+})).max(getProjectResponseDataProjectDatabasePolicyOneAllowedDestinationsMax).describe('Empty list denies all destinations on monitored ports. Allowed ports must be in databasePorts.')
+}),zod.null()]),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })

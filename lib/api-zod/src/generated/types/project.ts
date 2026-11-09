@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DatabasePolicy } from './databasePolicy';
 
 export interface Project {
   id: string;
@@ -12,6 +13,7 @@ export interface Project {
   name: string;
   /** @nullable */
   description: string | null;
+  databasePolicy: DatabasePolicy | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -59,6 +59,11 @@ export default defineConfig({
       clean: true,
       prettier: true,
       override: {
+        // Orval names the path validator and query DTO GetAlertsParams.
+        // The API already validates projectId with projectParamsSchema.
+        operations: {
+          getAlerts: { zod: { generate: { param: false } } },
+        },
         zod: {
           // Orval resolves `auto` from lib/api-spec/package.json, which has no
           // zod dependency, so orval >= 8.23 falls back to Zod 4 syntax while

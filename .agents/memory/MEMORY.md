@@ -1,1 +1,2 @@
 - [Development migration baseline](development-migration-baseline.md) — existing tables may predate Drizzle history; inspect before replaying migrations.
+- [Orval export collisions](orval-export-collisions.md) — path validators can collide with query DTOs across generated barrels; codegen success alone is insufficient.

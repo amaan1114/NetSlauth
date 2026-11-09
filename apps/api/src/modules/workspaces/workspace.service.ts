@@ -18,7 +18,7 @@ export const requireWorkspaceMember = async (
   const result = await getUserWorkspace(userId, workspaceId);
   if (!result) throw new HttpError(404, "Workspace not found");
   if (roles.length && !roles.includes(result.role)) {
-    throw new HttpError(403, "Only workspace owners and admins can create projects");
+    throw new HttpError(403, "Workspace owner or admin access is required");
   }
   return result.workspace;
 };

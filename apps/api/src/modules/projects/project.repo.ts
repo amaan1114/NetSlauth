@@ -1,5 +1,5 @@
 import { and, desc, eq, getTableColumns } from "drizzle-orm";
-import { projects, workspaceMembers } from "@workspace/netsleuth-database";
+import { projects, workspaceMembers, type DatabasePolicy } from "@workspace/netsleuth-database";
 import { db } from "../../services/database.js";
 
 export const createProject = async (workspaceId: string, name: string, description?: string) => {
@@ -20,5 +20,10 @@ export const getUserProject = async (userId: string, projectId: string) => {
     .innerJoin(workspaceMembers, eq(workspaceMembers.workspaceId, projects.workspaceId))
     .where(and(eq(projects.id, projectId), eq(workspaceMembers.userId, userId)))
     .limit(1);
+  return project;
+};
+
+export const updateProjectDatabasePolicy = async (projectId: string, databasePolicy: DatabasePolicy | null) => {
+  const [project] = await db.update(projects).set({ databasePolicy }).where(eq(projects.id, projectId)).returning();
   return project;
 };

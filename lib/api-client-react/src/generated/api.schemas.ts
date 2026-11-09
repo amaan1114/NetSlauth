@@ -5,6 +5,112 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type DatabaseDestinationProtocol = typeof DatabaseDestinationProtocol[keyof typeof DatabaseDestinationProtocol];
+
+
+export const DatabaseDestinationProtocol = {
+  TCP: 'TCP',
+  UDP: 'UDP',
+} as const;
+
+export interface DatabaseDestination {
+  /** A single IPv4 or IPv6 address */
+  ip: string;
+  /**
+     * @minimum 1
+     * @maximum 65535
+     */
+  port: number;
+  protocol: DatabaseDestinationProtocol;
+}
+
+export interface DatabasePolicy {
+  /**
+     * @minItems 1
+     * @maxItems 32
+     * @items.minimum 1
+     * @items.maximum 65535
+     */
+  databasePorts: number[];
+  /**
+     * Empty list denies all destinations on monitored ports. Allowed ports must be in databasePorts.
+     * @maxItems 100
+     */
+  allowedDestinations: DatabaseDestination[];
+}
+
+export interface DatabasePolicyInput {
+  databasePolicy: DatabasePolicy | null;
+}
+
+export type DatabasePolicyResponseData = {
+  databasePolicy: DatabasePolicy | null;
+};
+
+export interface DatabasePolicyResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: DatabasePolicyResponseData;
+}
+
+export type SecurityAlertSeverity = typeof SecurityAlertSeverity[keyof typeof SecurityAlertSeverity];
+
+
+export const SecurityAlertSeverity = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+} as const;
+
+export type SecurityAlertStatus = typeof SecurityAlertStatus[keyof typeof SecurityAlertStatus];
+
+
+export const SecurityAlertStatus = {
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  RESOLVED: 'RESOLVED',
+} as const;
+
+export type SecurityAlertEvidence = { [key: string]: unknown };
+
+export interface SecurityAlert {
+  id: string;
+  projectId: string;
+  /** @nullable */
+  agentId: string | null;
+  title: string;
+  description: string;
+  severity: SecurityAlertSeverity;
+  status: SecurityAlertStatus;
+  ruleId: string;
+  fingerprint: string;
+  evidence: SecurityAlertEvidence;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AlertPagination {
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export type AlertListResponseData = {
+  alerts: SecurityAlert[];
+  pagination: AlertPagination;
+};
+
+export interface AlertListResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: AlertListResponseData;
+}
+
 export type NetworkEventInputEventType = typeof NetworkEventInputEventType[keyof typeof NetworkEventInputEventType];
 
 
@@ -174,6 +280,7 @@ export interface Project {
   name: string;
   /** @nullable */
   description: string | null;
+  databasePolicy: DatabasePolicy | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -306,4 +413,38 @@ export interface HealthStatus {
  * Validation, authentication, authorization, not-found, or rate-limit error
  */
 export type AuthErrorResponse = ApiErrorResponse;
+
+export type GetAlertsParams = {
+/**
+ * @minimum 1
+ * @maximum 100000
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+severity?: GetAlertsSeverity;
+status?: GetAlertsStatus;
+};
+
+export type GetAlertsSeverity = typeof GetAlertsSeverity[keyof typeof GetAlertsSeverity];
+
+
+export const GetAlertsSeverity = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+} as const;
+
+export type GetAlertsStatus = typeof GetAlertsStatus[keyof typeof GetAlertsStatus];
+
+
+export const GetAlertsStatus = {
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  RESOLVED: 'RESOLVED',
+} as const;
 

@@ -1,7 +1,7 @@
 import { and, desc, eq, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "./client.js";
-import { agents, networkEvents, projects, securityAlerts } from "./schema/index.js";
+import { agents, networkEvents, projects, securityAlerts, alertSeverity, alertStatus } from "./schema/index.js";
 
 export const projectScopeSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -45,12 +45,26 @@ export function listNetworkEventsInProject(db: Database, scope: ProjectScope) {
     .limit(100);
 }
 
-export function listSecurityAlertsInProject(db: Database, scope: ProjectScope) {
+export const alertListOptionsSchema = z.object({
+  limit: z.number().int().min(1).max(100).default(100),
+  offset: z.number().int().min(0).default(0),
+  severity: z.enum(alertSeverity.enumValues).optional(),
+  status: z.enum(alertStatus.enumValues).optional(),
+}).strict();
+
+export function listSecurityAlertsInProject(
+  db: Database, scope: ProjectScope, options: z.input<typeof alertListOptionsSchema> = {},
+) {
   const { workspaceId, projectId } = projectScopeSchema.parse(scope);
+  const { limit, offset, severity, status } = alertListOptionsSchema.parse(options);
   return db.select(getTableColumns(securityAlerts))
     .from(securityAlerts)
     .innerJoin(projects, eq(securityAlerts.projectId, projects.id))
-    .where(and(eq(projects.workspaceId, workspaceId), eq(projects.id, projectId)))
-    .orderBy(desc(securityAlerts.lastSeenAt))
-    .limit(100);
+    .where(and(
+      eq(projects.workspaceId, workspaceId), eq(projects.id, projectId),
+      severity ? eq(securityAlerts.severity, severity) : undefined,
+      status ? eq(securityAlerts.status, status) : undefined,
+    ))
+    .orderBy(desc(securityAlerts.lastSeenAt), securityAlerts.id)
+    .limit(limit).offset(offset);
 }

@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { createProjectController, getProjectsController, getProjectController } from "./project.controller.js";
+import { createProjectController, getProjectsController, getProjectController, getDatabasePolicyController, updateDatabasePolicyController } from "./project.controller.js";
 import { projectAgentRoutes } from "../agents/agent.routes.js";
+import alertRoutes from "../alerts/alert.routes.js";
 
 export const workspaceProjectRoutes = Router({ mergeParams: true });
 workspaceProjectRoutes.post("/", createProjectController);
@@ -8,6 +9,9 @@ workspaceProjectRoutes.get("/", getProjectsController);
 
 const router = Router();
 router.use("/:projectId/agents", projectAgentRoutes);
+router.use("/:projectId/alerts", alertRoutes);
+router.get("/:projectId/database-policy", getDatabasePolicyController);
+router.put("/:projectId/database-policy", updateDatabasePolicyController);
 router.get("/:projectId", getProjectController);
 
 export default router;

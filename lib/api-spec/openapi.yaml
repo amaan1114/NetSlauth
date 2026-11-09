@@ -11,6 +11,70 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /v1/projects/{projectId}/alerts:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      operationId: getAlerts
+      security: [{ AccessCookie: [] }]
+      summary: List project alerts as a workspace member
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, maximum: 100000, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - in: query
+          name: severity
+          schema: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
+        - in: query
+          name: status
+          schema: { type: string, enum: [OPEN, ACKNOWLEDGED, RESOLVED] }
+      responses:
+        "200":
+          description: Alerts ordered by lastSeenAt descending with stable ID tie-breaking
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlertListResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
+  /v1/projects/{projectId}/database-policy:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      operationId: getDatabasePolicy
+      security: [{ AccessCookie: [] }]
+      summary: Read project database policy as a workspace member
+      responses:
+        "200":
+          description: Current policy, or null when disabled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DatabasePolicyResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
+    put:
+      operationId: updateDatabasePolicy
+      security: [{ AccessCookie: [] }]
+      summary: Replace or disable database policy as workspace OWNER or ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DatabasePolicyInput" }
+      responses:
+        "200":
+          description: Updated policy
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DatabasePolicyResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "403": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
   /v1/ingest/events:
     post:
       operationId: ingestEvents
@@ -21,6 +85,8 @@ paths:
         The whole request is validated before writing. Inserts and heartbeat updates
         are atomic; retries are deduplicated per agent/eventId.
         Only newly inserted heartbeats update agent liveness using the server time.
+        Detection runs synchronously after the event transaction commits, for newly inserted events only.
+        If detection fails, this returns 500 but events remain persisted. Duplicate retries do not rerun detection.
         Cookies and Authorization headers cannot authenticate this endpoint.
       requestBody:
         required: true
@@ -355,6 +421,93 @@ components:
           schema:
             $ref: "#/components/schemas/ApiErrorResponse"
   schemas:
+    DatabaseDestination:
+      type: object
+      additionalProperties: false
+      required: [ip, port, protocol]
+      properties:
+        ip: { type: string, description: A single IPv4 or IPv6 address }
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        protocol: { type: string, enum: [TCP, UDP] }
+    DatabasePolicy:
+      type: object
+      additionalProperties: false
+      required: [databasePorts, allowedDestinations]
+      properties:
+        databasePorts:
+          type: array
+          minItems: 1
+          maxItems: 32
+          items: { type: integer, minimum: 1, maximum: 65535 }
+        allowedDestinations:
+          type: array
+          maxItems: 100
+          description: Empty list denies all destinations on monitored ports. Allowed ports must be in databasePorts.
+          items: { $ref: "#/components/schemas/DatabaseDestination" }
+    DatabasePolicyInput:
+      type: object
+      additionalProperties: false
+      required: [databasePolicy]
+      properties:
+        databasePolicy:
+          oneOf:
+            - $ref: "#/components/schemas/DatabasePolicy"
+            - type: "null"
+    DatabasePolicyResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [databasePolicy]
+          properties:
+            databasePolicy:
+              oneOf:
+                - $ref: "#/components/schemas/DatabasePolicy"
+                - type: "null"
+    SecurityAlert:
+      type: object
+      required: [id, projectId, agentId, title, description, severity, status, ruleId, fingerprint, evidence, firstSeenAt, lastSeenAt, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        agentId: { type: [string, "null"], format: uuid }
+        title: { type: string }
+        description: { type: string }
+        severity: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
+        status: { type: string, enum: [OPEN, ACKNOWLEDGED, RESOLVED] }
+        ruleId: { type: string }
+        fingerprint: { type: string }
+        evidence: { type: object, additionalProperties: true }
+        firstSeenAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AlertPagination:
+      type: object
+      required: [page, limit, hasMore]
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        hasMore: { type: boolean }
+    AlertListResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [alerts, pagination]
+          properties:
+            alerts:
+              type: array
+              items: { $ref: "#/components/schemas/SecurityAlert" }
+            pagination: { $ref: "#/components/schemas/AlertPagination" }
     NetworkEventInput:
       type: object
       additionalProperties: false
@@ -485,12 +638,16 @@ components:
         updatedAt: { type: string, format: date-time }
     Project:
       type: object
-      required: [id, workspaceId, name, description, createdAt, updatedAt]
+      required: [id, workspaceId, name, description, databasePolicy, createdAt, updatedAt]
       properties:
         id: { type: string, format: uuid }
         workspaceId: { type: string, format: uuid }
         name: { type: string }
         description: { type: [string, "null"] }
+        databasePolicy:
+          oneOf:
+            - $ref: "#/components/schemas/DatabasePolicy"
+            - type: "null"
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     WorkspaceResponse:

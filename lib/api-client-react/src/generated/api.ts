@@ -29,6 +29,7 @@ import type {
   AgentListResponse,
   AgentRegistrationResponse,
   AgentResponse,
+  AlertListResponse,
   ApiErrorResponse,
   ApiHealthResponse,
   ApiReadinessResponse,
@@ -37,8 +38,11 @@ import type {
   AuthUserResponse,
   CreateProjectInput,
   CreateWorkspaceInput,
+  DatabasePolicyInput,
+  DatabasePolicyResponse,
   EventIngestionInput,
   EventIngestionResponse,
+  GetAlertsParams,
   HealthStatus,
   LoginInput,
   ProjectListResponse,
@@ -75,6 +79,312 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   return result;
 };
 
+export const getGetAlertsUrl = (projectId: string,
+    params?: GetAlertsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/projects/${projectId}/alerts?${stringifiedParams}` : `/api/v1/projects/${projectId}/alerts`
+}
+
+/**
+ * @summary List project alerts as a workspace member
+ */
+export const getAlerts = async (projectId: string,
+    params?: GetAlertsParams, options?: Parameters<typeof customFetch>[1]): Promise<AlertListResponse> => {
+
+  return customFetch<AlertListResponse>(getGetAlertsUrl(projectId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAlertsQueryKey = (projectId: string,
+    params?: GetAlertsParams,) => {
+    return [
+    `/api/v1/projects/${projectId}/alerts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAlertsQueryOptions = <TData = Awaited<ReturnType<typeof getAlerts>>, TError = ErrorType<AuthErrorResponse>>(projectId: string,
+    params?: GetAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlerts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAlertsQueryKey(projectId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAlerts>>> = ({ signal }) => getAlerts(projectId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAlerts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof getAlerts>>>
+export type GetAlertsQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetAlerts<TData = Awaited<ReturnType<typeof getAlerts>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params: undefined |  GetAlertsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlerts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAlerts>>,
+          TError,
+          Awaited<ReturnType<typeof getAlerts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAlerts<TData = Awaited<ReturnType<typeof getAlerts>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlerts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAlerts>>,
+          TError,
+          Awaited<ReturnType<typeof getAlerts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAlerts<TData = Awaited<ReturnType<typeof getAlerts>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlerts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List project alerts as a workspace member
+ */
+
+export function useGetAlerts<TData = Awaited<ReturnType<typeof getAlerts>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlerts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAlertsQueryOptions(projectId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDatabasePolicyUrl = (projectId: string,) => {
+
+
+
+
+  return `/api/v1/projects/${projectId}/database-policy`
+}
+
+/**
+ * @summary Read project database policy as a workspace member
+ */
+export const getDatabasePolicy = async (projectId: string, options?: Parameters<typeof customFetch>[1]): Promise<DatabasePolicyResponse> => {
+
+  return customFetch<DatabasePolicyResponse>(getGetDatabasePolicyUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDatabasePolicyQueryKey = (projectId: string,) => {
+    return [
+    `/api/v1/projects/${projectId}/database-policy`
+    ] as const;
+    }
+
+
+export const getGetDatabasePolicyQueryOptions = <TData = Awaited<ReturnType<typeof getDatabasePolicy>>, TError = ErrorType<AuthErrorResponse>>(projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabasePolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDatabasePolicyQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDatabasePolicy>>> = ({ signal }) => getDatabasePolicy(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDatabasePolicy>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDatabasePolicyQueryResult = NonNullable<Awaited<ReturnType<typeof getDatabasePolicy>>>
+export type GetDatabasePolicyQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetDatabasePolicy<TData = Awaited<ReturnType<typeof getDatabasePolicy>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabasePolicy>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDatabasePolicy>>,
+          TError,
+          Awaited<ReturnType<typeof getDatabasePolicy>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDatabasePolicy<TData = Awaited<ReturnType<typeof getDatabasePolicy>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabasePolicy>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDatabasePolicy>>,
+          TError,
+          Awaited<ReturnType<typeof getDatabasePolicy>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDatabasePolicy<TData = Awaited<ReturnType<typeof getDatabasePolicy>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabasePolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read project database policy as a workspace member
+ */
+
+export function useGetDatabasePolicy<TData = Awaited<ReturnType<typeof getDatabasePolicy>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDatabasePolicy>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDatabasePolicyQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateDatabasePolicyUrl = (projectId: string,) => {
+
+
+
+
+  return `/api/v1/projects/${projectId}/database-policy`
+}
+
+/**
+ * @summary Replace or disable database policy as workspace OWNER or ADMIN
+ */
+export const updateDatabasePolicy = async (projectId: string,
+    databasePolicyInput: DatabasePolicyInput, options?: Parameters<typeof customFetch>[1]): Promise<DatabasePolicyResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DatabasePolicyResponse>(getUpdateDatabasePolicyUrl(projectId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(databasePolicyInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateDatabasePolicyMutationKey = () => ['updateDatabasePolicy'] as const;
+
+export const getUpdateDatabasePolicyMutationOptions = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDatabasePolicy>>, TError,UpdateDatabasePolicyMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateDatabasePolicy>>, TError,UpdateDatabasePolicyMutationVariables, TContext> => {
+
+const mutationKey = getUpdateDatabasePolicyMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateDatabasePolicy>>, UpdateDatabasePolicyMutationVariables> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  updateDatabasePolicy(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateDatabasePolicyMutationResult = NonNullable<Awaited<ReturnType<typeof updateDatabasePolicy>>>
+    export type UpdateDatabasePolicyMutationBody = BodyType<DatabasePolicyInput>
+    export type UpdateDatabasePolicyMutationError = ErrorType<AuthErrorResponse>
+    export type UpdateDatabasePolicyMutationVariables = {projectId: string;data: BodyType<DatabasePolicyInput>}
+
+    /**
+ * @summary Replace or disable database policy as workspace OWNER or ADMIN
+ */
+export const useUpdateDatabasePolicy = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateDatabasePolicy>>, TError,UpdateDatabasePolicyMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateDatabasePolicy>>,
+        TError,
+        UpdateDatabasePolicyMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateDatabasePolicyMutationOptions(options), queryClient);
+    }
+
 export const getIngestEventsUrl = () => {
 
 
@@ -88,6 +398,8 @@ export const getIngestEventsUrl = () => {
  * The whole request is validated before writing. Inserts and heartbeat updates
  * are atomic; retries are deduplicated per agent/eventId.
  * Only newly inserted heartbeats update agent liveness using the server time.
+ * Detection runs synchronously after the event transaction commits, for newly inserted events only.
+ * If detection fails, this returns 500 but events remain persisted. Duplicate retries do not rerun detection.
  * Cookies and Authorization headers cannot authenticate this endpoint.
  * @summary Persist one event or a batch of up to 100 events from an authenticated agent
  */
