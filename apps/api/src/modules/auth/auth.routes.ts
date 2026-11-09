@@ -4,7 +4,7 @@ import { authMiddleware } from "../../middleware/authMiddleware.js";
 import { HttpError } from "../../utils/HttpError.js";
 import {
   signUpController, signInController, getMeController,
-  refreshTokenController, logoutController,
+  refreshSessionController, logoutController,
 } from "./auth.controller.js";
 
 const router = Router();
@@ -24,7 +24,7 @@ const authLimit = rateLimit({
 
 router.post("/register", authLimit, signUpController);
 router.post("/login", authLimit, signInController);
-router.post("/refresh", refreshTokenController);
+router.post("/refresh", refreshSessionController);
 router.post("/logout", logoutController);
 router.get("/me", authMiddleware, getMeController);
 

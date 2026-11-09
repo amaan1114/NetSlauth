@@ -8,6 +8,6 @@
 import type { ApiErrorResponse } from './apiErrorResponse';
 
 /**
- * Authentication, validation, or rate-limit error
+ * Validation, authentication, authorization, not-found, or rate-limit error
  */
 export type AuthErrorResponse = ApiErrorResponse;

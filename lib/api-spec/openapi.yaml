@@ -11,6 +11,105 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /v1/workspaces:
+    post:
+      operationId: createWorkspace
+      security: [{ AccessCookie: [] }]
+      summary: Create a workspace and its OWNER membership atomically
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateWorkspaceInput" }
+      responses:
+        "201":
+          description: Workspace created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+    get:
+      operationId: getWorkspaces
+      security: [{ AccessCookie: [] }]
+      summary: List only the authenticated user's workspaces
+      responses:
+        "200":
+          description: Member workspaces
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceListResponse" }
+        "401": { $ref: "#/components/responses/AuthError" }
+  /v1/workspaces/{workspaceId}:
+    parameters:
+      - $ref: "#/components/parameters/WorkspaceId"
+    get:
+      operationId: getWorkspace
+      security: [{ AccessCookie: [] }]
+      summary: Get workspace details as a member
+      responses:
+        "200":
+          description: Workspace details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
+  /v1/workspaces/{workspaceId}/projects:
+    parameters:
+      - $ref: "#/components/parameters/WorkspaceId"
+    post:
+      operationId: createProject
+      security: [{ AccessCookie: [] }]
+      summary: Create a project as workspace OWNER or ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateProjectInput" }
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "403": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
+    get:
+      operationId: getProjects
+      security: [{ AccessCookie: [] }]
+      summary: List projects in a workspace the user belongs to
+      responses:
+        "200":
+          description: Workspace projects
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectListResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
+  /v1/projects/{projectId}:
+    get:
+      operationId: getProject
+      security: [{ AccessCookie: [] }]
+      summary: Get a project through its actual workspace membership
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Project details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
   /v1/auth/register:
     post:
       operationId: registerUser
@@ -127,6 +226,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 components:
+  parameters:
+    WorkspaceId:
+      in: path
+      name: workspaceId
+      required: true
+      schema: { type: string, format: uuid }
   securitySchemes:
     AccessCookie:
       type: apiKey
@@ -135,12 +240,95 @@ components:
       description: HTTP-only access JWT. Authorization headers are never used.
   responses:
     AuthError:
-      description: Authentication, validation, or rate-limit error
+      description: Validation, authentication, authorization, not-found, or rate-limit error
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/ApiErrorResponse"
   schemas:
+    CreateWorkspaceInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+    CreateProjectInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, maxLength: 2000 }
+    Workspace:
+      type: object
+      required: [id, name, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Project:
+      type: object
+      required: [id, workspaceId, name, description, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        workspaceId: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    WorkspaceResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer }
+        message: { type: string }
+        data:
+          type: object
+          required: [workspace]
+          properties:
+            workspace: { $ref: "#/components/schemas/Workspace" }
+    WorkspaceListResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer }
+        message: { type: string }
+        data:
+          type: object
+          required: [workspaces]
+          properties:
+            workspaces:
+              type: array
+              items: { $ref: "#/components/schemas/Workspace" }
+    ProjectResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer }
+        message: { type: string }
+        data:
+          type: object
+          required: [project]
+          properties:
+            project: { $ref: "#/components/schemas/Project" }
+    ProjectListResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer }
+        message: { type: string }
+        data:
+          type: object
+          required: [projects]
+          properties:
+            projects:
+              type: array
+              items: { $ref: "#/components/schemas/Project" }
     RegisterInput:
       type: object
       additionalProperties: false

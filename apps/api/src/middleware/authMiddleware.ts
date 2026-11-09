@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { verifyToken } from "../utils/token.js";
+import { verifyToken } from "../modules/auth/auth.service.js";
 import { HttpError } from "../utils/HttpError.js";
 
 export const authMiddleware: RequestHandler = async (req, _res, next) => {

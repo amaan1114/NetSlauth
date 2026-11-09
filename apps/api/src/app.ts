@@ -7,6 +7,9 @@ import { globalErrorHandler } from "./middleware/globalErrorHandler.js";
 import { requestLogger } from "./middleware/requestLogger.js";
 import { checkDatabase } from "./services/database.js";
 import authRoutes from "./modules/auth/auth.routes.js";
+import workspaceRoutes from "./modules/workspaces/workspace.routes.js";
+import projectRoutes from "./modules/projects/project.routes.js";
+import { authMiddleware } from "./middleware/authMiddleware.js";
 import { HttpError } from "./utils/HttpError.js";
 import { HttpResponse } from "./utils/HttpResponse.js";
 
@@ -21,6 +24,8 @@ export function createApp(checkReady: () => Promise<void> = checkDatabase) {
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: false, limit: "1mb" }));
   app.use("/api/v1/auth", authRoutes);
+  app.use("/api/v1/workspaces", authMiddleware, workspaceRoutes);
+  app.use("/api/v1/projects", authMiddleware, projectRoutes);
 
   const health = express.Router();
   health.get("/health", (_req, res) => {

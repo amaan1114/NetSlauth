@@ -200,6 +200,9 @@ prepared; no UI components or dashboard features have been generated.
 - **Portability:** keep capture platform assumptions explicit and infrastructure
   configuration separate from application code.
 
-Agent authentication, workspace authorization, ingestion, detections, PostgreSQL log
+Workspace/project creation and member-authorized reads are implemented; see
+`apps/api/README.md` for endpoints and permissions.
+
+Agent authentication, ingestion, detections, PostgreSQL log
 collection, packet capture, dashboards, Dockerfiles, and Compose are deferred.
 No simulated events are presented as real observations.

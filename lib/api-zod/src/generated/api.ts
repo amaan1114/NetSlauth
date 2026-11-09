@@ -8,6 +8,155 @@
 import * as zod from 'zod';
 
 
+/**
+ * @summary Create a workspace and its OWNER membership atomically
+ */
+export const createWorkspaceBodyNameMax = 100;
+
+
+
+export const CreateWorkspaceBody = zod.object({
+  "name": zod.string().min(1).max(createWorkspaceBodyNameMax)
+})
+
+export const CreateWorkspaceResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "workspace": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+/**
+ * @summary List only the authenticated user's workspaces
+ */
+export const GetWorkspacesResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "workspaces": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+})
+
+
+/**
+ * @summary Get workspace details as a member
+ */
+export const GetWorkspaceParams = zod.object({
+  "workspaceId": zod.coerce.string().uuid()
+})
+
+export const GetWorkspaceResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "workspace": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+/**
+ * @summary Create a project as workspace OWNER or ADMIN
+ */
+export const CreateProjectParams = zod.object({
+  "workspaceId": zod.coerce.string().uuid()
+})
+
+export const createProjectBodyNameMax = 100;
+
+export const createProjectBodyDescriptionMax = 2000;
+
+
+
+export const CreateProjectBody = zod.object({
+  "name": zod.string().min(1).max(createProjectBodyNameMax),
+  "description": zod.string().max(createProjectBodyDescriptionMax).optional()
+})
+
+export const CreateProjectResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "project": zod.object({
+  "id": zod.string().uuid(),
+  "workspaceId": zod.string().uuid(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+/**
+ * @summary List projects in a workspace the user belongs to
+ */
+export const GetProjectsParams = zod.object({
+  "workspaceId": zod.coerce.string().uuid()
+})
+
+export const GetProjectsResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "projects": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "workspaceId": zod.string().uuid(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+})
+
+
+/**
+ * @summary Get a project through its actual workspace membership
+ */
+export const GetProjectParams = zod.object({
+  "projectId": zod.coerce.string().uuid()
+})
+
+export const GetProjectResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "project": zod.object({
+  "id": zod.string().uuid(),
+  "workspaceId": zod.string().uuid(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
 export const registerUserBodyNameMin = 2;
 export const registerUserBodyNameMax = 100;
 

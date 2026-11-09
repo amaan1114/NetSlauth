@@ -5,6 +5,85 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface CreateWorkspaceInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+}
+
+export interface CreateProjectInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  /** @maxLength 2000 */
+  description?: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Project {
+  id: string;
+  workspaceId: string;
+  name: string;
+  /** @nullable */
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type WorkspaceResponseData = {
+  workspace: Workspace;
+};
+
+export interface WorkspaceResponse {
+  success: true;
+  statusCode: number;
+  message: string;
+  data: WorkspaceResponseData;
+}
+
+export type WorkspaceListResponseData = {
+  workspaces: Workspace[];
+};
+
+export interface WorkspaceListResponse {
+  success: true;
+  statusCode: number;
+  message: string;
+  data: WorkspaceListResponseData;
+}
+
+export type ProjectResponseData = {
+  project: Project;
+};
+
+export interface ProjectResponse {
+  success: true;
+  statusCode: number;
+  message: string;
+  data: ProjectResponseData;
+}
+
+export type ProjectListResponseData = {
+  projects: Project[];
+};
+
+export interface ProjectListResponse {
+  success: true;
+  statusCode: number;
+  message: string;
+  data: ProjectListResponseData;
+}
+
 export interface RegisterInput {
   /**
      * @minLength 2
@@ -86,7 +165,7 @@ export interface HealthStatus {
 }
 
 /**
- * Authentication, validation, or rate-limit error
+ * Validation, authentication, authorization, not-found, or rate-limit error
  */
 export type AuthErrorResponse = ApiErrorResponse;
 

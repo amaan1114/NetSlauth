@@ -5,7 +5,7 @@ import { env, cookieConfig, refreshCookieConfig } from "../../config/env.js";
 import { registerSchema, loginSchema } from "./auth.validation.js";
 import {
   signUpService, signInService, getMeService,
-  refreshTokenService,
+  refreshSessionService,
 } from "./auth.service.js";
 
 export const signUpController: RequestHandler = async (req, res, next) => {
@@ -42,13 +42,13 @@ export const getMeController: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const refreshTokenController: RequestHandler = async (req, res, next) => {
+export const refreshSessionController: RequestHandler = async (req, res, next) => {
   try {
     const token: unknown = req.cookies.netsleuth_refresh;
     if (typeof token !== "string" || !token || token.length > 8192) {
       throw new HttpError(401, "Refresh cookie is required");
     }
-    const { user, accessToken, refreshToken, refreshLifetime } = await refreshTokenService(token);
+    const { user, accessToken, refreshToken, refreshLifetime } = await refreshSessionService(token);
     res.cookie("netsleuth_access", accessToken, { ...cookieConfig, maxAge: env.JWT_ACCESS_TTL_SECONDS * 1000 });
     res.cookie("netsleuth_refresh", refreshToken, { ...refreshCookieConfig, maxAge: refreshLifetime * 1000 });
     return res.json(new HttpResponse(200, "Session refreshed", { user }));
@@ -61,7 +61,7 @@ export const refreshTokenController: RequestHandler = async (req, res, next) => 
   }
 };
 
-export const logoutController: RequestHandler = async (_req, res, next) => {
+export const logoutController: RequestHandler = async (req, res, next) => {
   try {
     res.clearCookie("netsleuth_access", cookieConfig);
     res.clearCookie("netsleuth_refresh", refreshCookieConfig);
@@ -70,3 +70,4 @@ export const logoutController: RequestHandler = async (_req, res, next) => {
     next(error);
   }
 };
+

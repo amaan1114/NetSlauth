@@ -1,8 +1,8 @@
 # NetSleuth backend foundation
 
-Small Express 5/TypeScript backend with cookie-based user authentication.
-Workspace/agent authorization, ingestion, detections, and Socket.IO application
-events are not implemented.
+Small Express 5/TypeScript backend with cookie authentication and authorized
+workspace/project management. Agent authentication, ingestion, detections,
+and Socket.IO application events are not implemented.
 
 ## Structure
 
@@ -19,6 +19,18 @@ src/
     auth.service.ts
     auth.validation.ts
     auth.repo.ts
+  modules/workspaces/
+    workspace.routes.ts
+    workspace.controller.ts
+    workspace.service.ts
+    workspace.repo.ts
+    workspace.validation.ts
+  modules/projects/
+    project.routes.ts
+    project.controller.ts
+    project.service.ts
+    project.repo.ts
+    project.validation.ts
   modules/README.md
   services/database.ts
   utils/
@@ -28,7 +40,7 @@ src/
   app.ts
   server.ts
   index.ts
-tests/{foundation,auth,auth-client}.test.ts
+tests/{foundation,auth,auth-client,workspaces-projects}.test.ts
 .env.example
 ```
 
@@ -241,3 +253,42 @@ Missing access cookies return HTTP 401 with the existing error envelope:
 Login/registration share a process-local limit of 30 attempts per IP per
 15 minutes. A shared rate-limit store is needed before horizontal scaling.
 No password recovery or email verification is implemented.
+
+## Workspace and project management
+
+All six endpoints use the existing access-cookie middleware:
+
+| Method | Endpoint | Permission |
+| --- | --- | --- |
+| POST | `/api/v1/workspaces` | Authenticated user; becomes OWNER |
+| GET | `/api/v1/workspaces` | Lists only the user's memberships |
+| GET | `/api/v1/workspaces/:workspaceId` | Workspace member |
+| POST | `/api/v1/workspaces/:workspaceId/projects` | Workspace OWNER or ADMIN |
+| GET | `/api/v1/workspaces/:workspaceId/projects` | Workspace member |
+| GET | `/api/v1/projects/:projectId` | Member of the project's actual workspace |
+
+Workspace creation accepts `{ "name": "My workspace" }`. Project creation
+accepts `{ "name": "My project", "description": "Optional description" }`.
+Names are trimmed and must contain 1–100 characters. Descriptions are trimmed
+and limited to 2000 characters; omitting one stores `null`. Unknown body fields
+are rejected, so callers cannot override ownership, roles, or workspace IDs.
+
+Success data uses `{ workspace }`, `{ workspaces }`, `{ project }`, or
+`{ projects }` inside the existing HttpResponse envelope. Creation returns 201;
+reads return 200. Missing access cookies return 401, invalid inputs/UUIDs return
+400, and ordinary members attempting project creation receive 403. Inaccessible
+and missing workspaces/projects both return 404 to avoid revealing their existence.
+
+`workspace.service.ts` exports the reusable `requireWorkspaceMember` helper.
+It reads current membership/roles from PostgreSQL rather than trusting JWT roles
+or client-supplied IDs. Project reads also join workspace membership directly.
+Workspace and OWNER membership creation share one database transaction, so a
+failed membership insertion cannot leave an orphan workspace.
+
+The authorization integration tests use a temporary PostgreSQL schema and roll
+back all fixtures. They cover all six protected endpoints, OWNER/ADMIN/MEMBER
+permissions, role changes, removed memberships, cross-workspace UUID attempts,
+validation, and transaction rollback without exposing internal database errors.
+No schema changes or new environment variables are required. This module does
+not add member-management endpoints, agent registration/credentials, ingestion,
+detections, or alerts, and does not change cookie authentication.
