@@ -5,9 +5,10 @@
   "scripts": {
     "preinstall": "sh -c 'case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "turbo run build --filter='./apps/*' --filter='./packages/*'",
-    "dev": "turbo run dev --filter='./apps/*'",
+    "dev": "turbo run dev --filter='./apps/*' --filter='!@workspace/netsleuth-agent'",
     "lint": "turbo run lint --filter='./apps/*' --filter='./packages/*'",
     "test": "turbo run test --filter='./apps/*' --filter='./packages/*'",
+    "test:e2e": "turbo run build --filter=@workspace/netsleuth-api... --filter=@workspace/netsleuth-agent... && pnpm --filter @workspace/netsleuth-api test:e2e",
     "typecheck:libs": "turbo run build --filter=@workspace/netsleuth-database && tsc --build",
     "typecheck": "pnpm run typecheck:libs && turbo run typecheck",
     "typecheck:netsleuth": "turbo run typecheck --filter='./apps/*' --filter='./packages/*'",

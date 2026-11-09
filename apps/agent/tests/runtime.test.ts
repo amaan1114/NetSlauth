@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -75,5 +75,58 @@ test("SIGINT/SIGTERM stop timers and drain pending HTTP; a deadline cancels stal
         await api.close();
       }
     });
+  }
+});
+
+test("a temporary API outage exhausts bounded retries without crashing; polling and heartbeats recover", { timeout: 10000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), "netsleuth-agent-outage-"));
+  const marker = join(directory, "polls");
+  const bin = join(directory, "bin");
+  await mkdir(bin);
+  await writeFile(join(bin, "ss"), `#!${process.execPath}\nrequire("node:fs").appendFileSync(${JSON.stringify(marker)}, "poll\\n"); process.stdout.write("tcp LISTEN 0 128 127.0.0.1:5432 0.0.0.0:*\\n");\n`, { mode: 0o755 });
+  let unavailable = true;
+  let recoveredHeartbeat = false;
+  const api = await startTestApi((events, _req, res) => {
+    if (unavailable) { res.writeHead(503).end(); return; }
+    if (events[0]?.eventType === "AGENT_HEARTBEAT") recoveredHeartbeat = true;
+    sendCounts(res, events.length);
+  });
+  const child = spawn(process.execPath, ["--import", "tsx", fileURLToPath(new URL("../src/index.ts", import.meta.url))], {
+    cwd: fileURLToPath(new URL("../", import.meta.url)),
+    env: {
+      ...process.env, PATH: `${bin}:${process.env.PATH}`, NODE_ENV: "test",
+      NETSLEUTH_API_URL: api.url, NETSLEUTH_AGENT_KEY: `ns_agent_${"d".repeat(64)}`,
+      COLLECTION_INTERVAL_MS: "1000", HEARTBEAT_INTERVAL_MS: "1000",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  child.stdout.on("data", (chunk) => { output += chunk.toString(); });
+  child.stderr.on("data", (chunk) => { output += chunk.toString(); });
+  const closed = once(child, "close");
+  try {
+    const deadline = Date.now() + 6000;
+    while (!output.includes("Heartbeat publishing failed") && Date.now() < deadline) await delay(50);
+    assert.match(output, /Heartbeat publishing failed/);
+    assert.match(output, /retrying batch \(3\/3\)/);
+    assert.equal(child.exitCode, null);
+    unavailable = false;
+    let polls = 0;
+    while (Date.now() < deadline) {
+      polls = (await readFile(marker, "utf8")).trim().split("\n").length;
+      if (recoveredHeartbeat && polls >= 2) break;
+      await delay(50);
+    }
+    assert.equal(recoveredHeartbeat, true, "Heartbeat did not recover after the API returned");
+    assert.ok(polls >= 2, "Collection stopped during the outage");
+    assert.equal(child.exitCode, null);
+    child.kill("SIGTERM");
+    const [code, signal] = await closed;
+    assert.equal(code, 0);
+    assert.equal(signal, null);
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    await api.close();
+    await rm(directory, { recursive: true, force: true });
   }
 });

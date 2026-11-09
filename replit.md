@@ -13,6 +13,10 @@ Security observability platform with monorepo, database, and backend foundations
   run with `pnpm --filter @workspace/netsleuth-api test`.
   Database integration checks
   are opt-in; see `packages/database/README.md` for `test:db`.
+- `pnpm test:e2e` runs the actual Linux collector and HTTP publishing against
+  isolated, rollback-only PostgreSQL fixtures. Requires Linux, ss, database
+  configuration and API signing secrets. See `docs/integration-report.md`.
+- Root `pnpm dev` starts web/API only; start the credentialed agent separately.
 - Keep retained starter workspaces separate from NetSleuth. Default build/lint/dev
   target NetSleuth; full typecheck includes retained starter workspaces.
   **Why:** starter preview services have separate routing/runtime requirements.

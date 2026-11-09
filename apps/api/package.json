@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test --test-timeout=30000 tests/*.test.ts",
+    "test:e2e": "tsx --test --test-timeout=60000 tests/integration/*.test.ts"
   },
   "dependencies": {
     "@workspace/netsleuth-database": "workspace:*",
