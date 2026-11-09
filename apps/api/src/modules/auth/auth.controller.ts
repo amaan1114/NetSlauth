@@ -2,11 +2,10 @@ import type { RequestHandler } from "express";
 import { HttpResponse } from "../../utils/HttpResponse.js";
 import { HttpError } from "../../utils/HttpError.js";
 import { env, cookieConfig, refreshCookieConfig } from "../../config/env.js";
-import { issueCsrfToken } from "../../middleware/csrfProtection.js";
 import { registerSchema, loginSchema } from "./auth.validation.js";
 import {
   signUpService, signInService, getMeService,
-  refreshSessionService, logoutService,
+  refreshTokenService,
 } from "./auth.service.js";
 
 export const signUpController: RequestHandler = async (req, res, next) => {
@@ -43,13 +42,13 @@ export const getMeController: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const refreshSessionController: RequestHandler = async (req, res, next) => {
+export const refreshTokenController: RequestHandler = async (req, res, next) => {
   try {
     const token: unknown = req.cookies.netsleuth_refresh;
     if (typeof token !== "string" || !token || token.length > 8192) {
       throw new HttpError(401, "Refresh cookie is required");
     }
-    const { user, accessToken, refreshToken, refreshLifetime } = await refreshSessionService(token);
+    const { user, accessToken, refreshToken, refreshLifetime } = await refreshTokenService(token);
     res.cookie("netsleuth_access", accessToken, { ...cookieConfig, maxAge: env.JWT_ACCESS_TTL_SECONDS * 1000 });
     res.cookie("netsleuth_refresh", refreshToken, { ...refreshCookieConfig, maxAge: refreshLifetime * 1000 });
     return res.json(new HttpResponse(200, "Session refreshed", { user }));
@@ -62,22 +61,11 @@ export const refreshSessionController: RequestHandler = async (req, res, next) =
   }
 };
 
-export const logoutController: RequestHandler = async (req, res, next) => {
+export const logoutController: RequestHandler = async (_req, res, next) => {
   try {
-    await logoutService(req.cookies.netsleuth_refresh, req.cookies.netsleuth_access);
     res.clearCookie("netsleuth_access", cookieConfig);
     res.clearCookie("netsleuth_refresh", refreshCookieConfig);
-    res.clearCookie("netsleuth_csrf", refreshCookieConfig);
     return res.json(new HttpResponse(200, "Logout successful"));
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const csrfController: RequestHandler = (req, res, next) => {
-  try {
-    const csrfToken = issueCsrfToken(req, res);
-    return res.json(new HttpResponse(200, "CSRF token issued", { csrfToken }));
   } catch (error) {
     next(error);
   }

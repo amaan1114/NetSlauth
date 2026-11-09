@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { validateAccessToken } from "../modules/auth/auth.service.js";
+import { verifyToken } from "../utils/token.js";
 import { HttpError } from "../utils/HttpError.js";
 
 export const authMiddleware: RequestHandler = async (req, _res, next) => {
@@ -8,9 +8,8 @@ export const authMiddleware: RequestHandler = async (req, _res, next) => {
     if (typeof accessToken !== "string" || !accessToken || accessToken.length > 8192) {
       throw new HttpError(401, "Access cookie is required");
     }
-    const { userId, sessionId } = await validateAccessToken(accessToken);
+    const { userId } = verifyToken(accessToken, "access");
     req.userId = userId;
-    req.sessionId = sessionId;
     next();
   } catch (error) {
     next(error);

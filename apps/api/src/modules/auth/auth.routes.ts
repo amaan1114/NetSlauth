@@ -1,11 +1,10 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { csrfProtection } from "../../middleware/csrfProtection.js";
 import { authMiddleware } from "../../middleware/authMiddleware.js";
 import { HttpError } from "../../utils/HttpError.js";
 import {
   signUpController, signInController, getMeController,
-  refreshSessionController, logoutController, csrfController,
+  refreshTokenController, logoutController,
 } from "./auth.controller.js";
 
 const router = Router();
@@ -23,11 +22,10 @@ const authLimit = rateLimit({
   handler: (_req, _res, next) => next(new HttpError(429, "Too many authentication attempts; try again later")),
 });
 
-router.get("/csrf", csrfController);
-router.post("/register", authLimit, csrfProtection, signUpController);
-router.post("/login", authLimit, csrfProtection, signInController);
-router.post("/refresh", csrfProtection, refreshSessionController);
-router.post("/logout", csrfProtection, logoutController);
+router.post("/register", authLimit, signUpController);
+router.post("/login", authLimit, signInController);
+router.post("/refresh", refreshTokenController);
+router.post("/logout", logoutController);
 router.get("/me", authMiddleware, getMeController);
 
 export default router;

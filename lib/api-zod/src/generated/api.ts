@@ -8,24 +8,6 @@
 import * as zod from 'zod';
 
 
-/**
- * Uses an HTTP-only context cookie. Fetch with credentials included before every auth POST.
- * @summary Issue a session-bound CSRF token
- */
-export const GetCsrfTokenResponse = zod.object({
-  "success": zod.literal(true),
-  "statusCode": zod.literal(200),
-  "message": zod.string(),
-  "data": zod.object({
-  "csrfToken": zod.string()
-})
-})
-
-
-export const RegisterUserHeader = zod.object({
-  "X-CSRF-Token": zod.string().describe('Obtain a fresh token from /api/v1/auth/csrf using credentials included.')
-})
-
 export const registerUserBodyNameMin = 2;
 export const registerUserBodyNameMax = 100;
 
@@ -57,10 +39,6 @@ export const RegisterUserResponse = zod.object({
 })
 
 
-export const LoginUserHeader = zod.object({
-  "X-CSRF-Token": zod.string().describe('Obtain a fresh token from /api/v1/auth/csrf using credentials included.')
-})
-
 export const loginUserBodyEmailMax = 254;
 
 export const loginUserBodyPasswordMin = 8;
@@ -88,10 +66,6 @@ export const LoginUserResponse = zod.object({
 })
 
 
-export const RefreshSessionHeader = zod.object({
-  "X-CSRF-Token": zod.string().describe('Obtain a fresh token from /api/v1/auth/csrf using credentials included.')
-})
-
 export const RefreshSessionResponse = zod.object({
   "success": zod.literal(true),
   "statusCode": zod.number().int(),
@@ -107,10 +81,6 @@ export const RefreshSessionResponse = zod.object({
 })
 })
 
-
-export const LogoutUserHeader = zod.object({
-  "X-CSRF-Token": zod.string().describe('Obtain a fresh token from /api/v1/auth/csrf using credentials included.')
-})
 
 export const LogoutUserResponse = zod.object({
   "success": zod.literal(true),

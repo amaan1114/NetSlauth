@@ -13,7 +13,6 @@ src/
     globalErrorHandler.ts
     requestLogger.ts
     authMiddleware.ts
-    csrfProtection.ts
   modules/auth/
     auth.routes.ts
     auth.controller.ts
@@ -25,6 +24,7 @@ src/
   utils/
     HttpResponse.ts
     HttpError.ts
+    token.ts
   app.ts
   server.ts
   index.ts
@@ -53,8 +53,9 @@ tests/{foundation,auth,auth-client}.test.ts
 - `modules/`: future feature modules are added when needed, not as empty folders.
   Keep routes, controllers, services and Zod validation separate.
   Auth uses direct named controller/service exports with explicit try/catch and
-  `next(error)`. Database queries live in `auth.repo.ts`; JWT/session logic lives
-  in `auth.service.ts`. There are no controller/service/router factories.
+  `next(error)`. Database queries live in `auth.repo.ts`; token generation,
+  signing, and verification live in `utils/token.ts`. There are no
+  controller/service/router factories.
 
 ## Configuration
 
@@ -70,7 +71,7 @@ origins, without a wildcard. The Node server trusts one reverse-proxy hop; adjus
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `JWT_ACCESS_TTL_SECONDS` | `900` | Access JWT lifetime (60–3600 seconds) |
-| `JWT_REFRESH_TTL_SECONDS` | `604800` | Absolute session lifetime (1 hour–30 days); must exceed access lifetime |
+| `JWT_REFRESH_TTL_SECONDS` | `604800` | Refresh JWT lifetime (1 hour–30 days); must exceed access lifetime |
 | `COOKIE_SECURE` | true in production, false otherwise | HTTPS-only cookies; production cannot disable it |
 | `COOKIE_SAME_SITE` | `lax` | `lax`, `strict`, or `none`; `none` requires Secure |
 | `COOKIE_DOMAIN` | omitted | Host-only cookies by default; set only when sharing across subdomains |
@@ -152,20 +153,19 @@ Authentication tests use real bcrypt, JWT verification, and PostgreSQL in a
 random temporary schema inside a rolled-back transaction. They do not create
 accounts in the application's public tables. They check registration,
 case-insensitive duplicate rejection, invalid input, password verification,
-cookie-only access, token expiry/type checks, refresh rotation/replay and
-concurrent rotation, CSRF, logout revocation, and deleted users.
-The frontend transport test verifies credentials and CSRF headers without
-making network requests.
+cookie-only access, token expiry/type checks, stateless refresh, cookie clearing,
+and deleted users. A middleware test confirms no database query is required.
+The frontend transport test verifies that requests send cookies directly,
+without CSRF preflight requests or Authorization headers.
 
 ## Cookie authentication
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| GET | `/api/v1/auth/csrf` | Get a session-bound CSRF token |
 | POST | `/api/v1/auth/register` | Register and set access/refresh cookies |
 | POST | `/api/v1/auth/login` | Verify credentials and set cookies |
-| POST | `/api/v1/auth/refresh` | Renew access and rotate refresh cookie |
-| POST | `/api/v1/auth/logout` | Revoke this session and clear cookies |
+| POST | `/api/v1/auth/refresh` | Verify refresh JWT and set new JWT cookies |
+| POST | `/api/v1/auth/logout` | Clear browser cookies |
 | GET | `/api/v1/auth/me` | Return safe user fields from PostgreSQL |
 
 JWTs are **never returned in JSON or read from Authorization headers**.
@@ -173,37 +173,32 @@ JWTs are **never returned in JSON or read from Authorization headers**.
 HTTP-only cookie at `/api/v1/auth`. Both use the configured SameSite/Secure/domain
 options. Clearing cookies uses the same options and paths.
 
-Refresh sessions store SHA-256 hashes of the current refresh token, never the
-raw token. Atomic compare-and-update permits only one successful rotation.
-Rotating cannot extend the original session expiration. Revoking a session
-invalidates access immediately because middleware checks the session in the
-database. Registration creates the user and session in one transaction.
+Authentication is stateless. Register/login set JWT cookies; middleware verifies
+the access JWT signature and expiration and attaches `req.userId`. Only `/me`
+and refresh look up the current user. No session records are created or queried.
+The old `refresh_sessions` schema/table is retained but unused; this change
+does not delete existing database data or rewrite migration history.
 
-**Every auth POST requires `X-CSRF-Token`.** Fetch a fresh token from `/csrf`
-before each POST, with cookies included in both requests. The signed CSRF token
-is bound to an HTTP-only context cookie and the current refresh cookie, so it
-changes after login/registration/rotation. Requests from an unapproved browser
-Origin are also rejected. Future cookie-authenticated write routes must mount
-`csrfProtection` too; `authMiddleware` alone does not add CSRF protection.
+Logout only clears cookies. Copied access/refresh JWTs remain usable until they
+expire; issuing a new refresh JWT does not invalidate the previous one. There
+is no server-side revocation, replay detection, or absolute session limit.
+CSRF middleware, tokens, and the `/csrf` endpoint have been removed at the user's
+request. SameSite/Secure cookies and restricted CORS remain, but are not a
+complete replacement for CSRF protection, particularly with SameSite=None.
 
 `lib/api-client-react/src/custom-fetch.ts` always uses `credentials: "include"`,
-automatically obtains the CSRF token for writes, and does not send Authorization.
+and does not send Authorization. Writes go directly to their endpoint.
 No browser local/session storage is used for tokens. Automatic retries/refresh
 and frontend sign-in screens are not part of this backend module.
 
 ### Example browser request
 
 ```ts
-const csrfResponse = await fetch("/api/v1/auth/csrf", {
-  credentials: "include",
-});
-const { data } = await csrfResponse.json();
 const response = await fetch("/api/v1/auth/register", {
   method: "POST",
   credentials: "include",
   headers: {
     "Content-Type": "application/json",
-    "X-CSRF-Token": data.csrfToken,
   },
   body: JSON.stringify({
     name: "Example User",
@@ -245,6 +240,4 @@ Missing access cookies return HTTP 401 with the existing error envelope:
 
 Login/registration share a process-local limit of 30 attempts per IP per
 15 minutes. A shared rate-limit store is needed before horizontal scaling.
-Expired/revoked sessions currently remain for inspection; a retention cleanup
-job can be added separately. No password recovery or email verification is
-implemented.
+No password recovery or email verification is implemented.

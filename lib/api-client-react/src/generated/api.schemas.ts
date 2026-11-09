@@ -52,17 +52,6 @@ export interface AuthSuccessResponse {
   message: string;
 }
 
-export type CsrfResponseData = {
-  csrfToken: string;
-};
-
-export interface CsrfResponse {
-  success: true;
-  statusCode: 200;
-  message: string;
-  data: CsrfResponseData;
-}
-
 export type ApiHealthResponseData = {
   status: 'ok';
 };
@@ -97,12 +86,7 @@ export interface HealthStatus {
 }
 
 /**
- * Authentication, validation, CSRF, or rate-limit error
+ * Authentication, validation, or rate-limit error
  */
 export type AuthErrorResponse = ApiErrorResponse;
-
-/**
- * Obtain a fresh token from /api/v1/auth/csrf using credentials included.
- */
-export type CsrfHeaderParameter = string;
 

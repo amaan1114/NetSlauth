@@ -15,7 +15,6 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 // ---------------------------------------------------------------------------
 
 let _baseUrl: string | null = null;
-let csrfRequest: Promise<string> | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -335,19 +334,6 @@ export async function customFetch<T = unknown>(
 
   // Authentication is cookie-only. Tokens are never read or stored by JS.
   headers.delete("authorization");
-  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
-    if (!csrfRequest) {
-      csrfRequest = (async () => {
-        const csrfUrl = applyBaseUrl("/api/v1/auth/csrf");
-        const response = await fetch(csrfUrl, { credentials: "include", cache: "no-store" });
-        if (!response.ok) throw new ApiError(response, await response.json(), { method: "GET", url: resolveUrl(csrfUrl) });
-        const body = await response.json();
-        if (typeof body?.data?.csrfToken !== "string") throw new Error("Invalid CSRF response");
-        return body.data.csrfToken as string;
-      })().finally(() => { csrfRequest = null; });
-    }
-    headers.set("x-csrf-token", await csrfRequest);
-  }
 
   const requestInfo = { method, url: resolveUrl(input) };
 

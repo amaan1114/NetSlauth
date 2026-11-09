@@ -80,12 +80,16 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 - Keep auth code like the user's example: direct named controllers/services,
   explicit try/catch with `next(error)`, and simple repository functions.
   Avoid factories, unnecessary abstractions, and extra small helper files.
+  Keep the three JWT helpers together in `utils/token.ts`, not the auth service.
   **Why:** the user said the previous auth implementation had too many files and
   asked for clean code matching their example.
 - User authentication must use HTTP-only access/refresh cookies with separate
-  signing secrets, refresh rotation, credentialed requests, and CSRF protection.
+  signing secrets and credentialed requests.
   Never use Authorization/Bearer authentication for users.
   **Why:** the user's explicit cookie-only strategy overrides the original JWT brief.
+- Keep authentication stateless: login sets JWT cookies and middleware verifies
+  token signature/expiry. Do not add CSRF or server-side session tracking for now.
+  **Why:** the user explicitly asked to remove both to simplify the auth code.
 
 ## Gotchas
 
