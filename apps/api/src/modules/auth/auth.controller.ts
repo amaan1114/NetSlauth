@@ -1,46 +1,84 @@
 import type { RequestHandler } from "express";
 import { HttpResponse } from "../../utils/HttpResponse.js";
 import { HttpError } from "../../utils/HttpError.js";
+import { env, cookieConfig, refreshCookieConfig } from "../../config/env.js";
 import { issueCsrfToken } from "../../middleware/csrfProtection.js";
-import { AUTH_PATH, CSRF_COOKIE, ACCESS_COOKIE, REFRESH_COOKIE, clearAuthCookies, cookieOptions, readCookie, setAuthCookies } from "./auth.cookies.js";
 import { registerSchema, loginSchema } from "./auth.validation.js";
-import type { AuthService } from "./auth.service.js";
+import {
+  signUpService, signInService, getMeService,
+  refreshSessionService, logoutService,
+} from "./auth.service.js";
 
-export function createAuthController(service: AuthService) {
-  const register: RequestHandler = async (req, res) => {
-    const result = await service.register(registerSchema.parse(req.body));
-    setAuthCookies(res, result);
-    res.status(201).json(new HttpResponse(201, "Registration successful", { user: result.user }));
-  };
-  const login: RequestHandler = async (req, res) => {
-    const result = await service.login(loginSchema.parse(req.body));
-    setAuthCookies(res, result);
-    res.json(new HttpResponse(200, "Login successful", { user: result.user }));
-  };
-  const refresh: RequestHandler = async (req, res) => {
-    const token = readCookie(req, REFRESH_COOKIE);
-    if (!token) throw new HttpError(401, "Refresh cookie is required");
-    try {
-      const result = await service.refresh(token);
-      setAuthCookies(res, result);
-      res.json(new HttpResponse(200, "Session refreshed", { user: result.user }));
-    } catch (error) {
-      if (error instanceof HttpError && error.statusCode === 401) clearAuthCookies(res);
-      throw error;
-    }
-  };
-  const logout: RequestHandler = async (req, res) => {
-    await service.logout(readCookie(req, REFRESH_COOKIE), readCookie(req, ACCESS_COOKIE));
-    clearAuthCookies(res);
-    res.clearCookie(CSRF_COOKIE, cookieOptions(AUTH_PATH));
-    res.json(new HttpResponse(200, "Logout successful"));
-  };
-  const me: RequestHandler = async (req, res) => {
+export const signUpController: RequestHandler = async (req, res, next) => {
+  try {
+    const { name, email, password } = registerSchema.parse(req.body);
+    const { user, accessToken, refreshToken, refreshLifetime } = await signUpService(name, email, password);
+    res.cookie("netsleuth_access", accessToken, { ...cookieConfig, maxAge: env.JWT_ACCESS_TTL_SECONDS * 1000 });
+    res.cookie("netsleuth_refresh", refreshToken, { ...refreshCookieConfig, maxAge: refreshLifetime * 1000 });
+    return res.status(201).json(new HttpResponse(201, "Registration successful", { user }));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const signInController: RequestHandler = async (req, res, next) => {
+  try {
+    const { email, password } = loginSchema.parse(req.body);
+    const { user, accessToken, refreshToken, refreshLifetime } = await signInService(email, password);
+    res.cookie("netsleuth_access", accessToken, { ...cookieConfig, maxAge: env.JWT_ACCESS_TTL_SECONDS * 1000 });
+    res.cookie("netsleuth_refresh", refreshToken, { ...refreshCookieConfig, maxAge: refreshLifetime * 1000 });
+    return res.json(new HttpResponse(200, "Login successful", { user }));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMeController: RequestHandler = async (req, res, next) => {
+  try {
     if (!req.userId) throw new HttpError(401, "Authentication is required");
-    res.json(new HttpResponse(200, "Current user", { user: await service.currentUser(req.userId) }));
-  };
-  const csrf: RequestHandler = (req, res) => {
-    res.json(new HttpResponse(200, "CSRF token issued", { csrfToken: issueCsrfToken(req, res) }));
-  };
-  return { register, login, refresh, logout, me, csrf };
-}
+    const user = await getMeService(req.userId);
+    return res.json(new HttpResponse(200, "Current user", { user }));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const refreshSessionController: RequestHandler = async (req, res, next) => {
+  try {
+    const token: unknown = req.cookies.netsleuth_refresh;
+    if (typeof token !== "string" || !token || token.length > 8192) {
+      throw new HttpError(401, "Refresh cookie is required");
+    }
+    const { user, accessToken, refreshToken, refreshLifetime } = await refreshSessionService(token);
+    res.cookie("netsleuth_access", accessToken, { ...cookieConfig, maxAge: env.JWT_ACCESS_TTL_SECONDS * 1000 });
+    res.cookie("netsleuth_refresh", refreshToken, { ...refreshCookieConfig, maxAge: refreshLifetime * 1000 });
+    return res.json(new HttpResponse(200, "Session refreshed", { user }));
+  } catch (error) {
+    if (error instanceof HttpError && error.statusCode === 401) {
+      res.clearCookie("netsleuth_access", cookieConfig);
+      res.clearCookie("netsleuth_refresh", refreshCookieConfig);
+    }
+    next(error);
+  }
+};
+
+export const logoutController: RequestHandler = async (req, res, next) => {
+  try {
+    await logoutService(req.cookies.netsleuth_refresh, req.cookies.netsleuth_access);
+    res.clearCookie("netsleuth_access", cookieConfig);
+    res.clearCookie("netsleuth_refresh", refreshCookieConfig);
+    res.clearCookie("netsleuth_csrf", refreshCookieConfig);
+    return res.json(new HttpResponse(200, "Logout successful"));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const csrfController: RequestHandler = (req, res, next) => {
+  try {
+    const csrfToken = issueCsrfToken(req, res);
+    return res.json(new HttpResponse(200, "CSRF token issued", { csrfToken }));
+  } catch (error) {
+    next(error);
+  }
+};

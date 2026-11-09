@@ -9,9 +9,11 @@ import { eq, sql } from "drizzle-orm";
 import { createDatabase, users, refreshSessions, type Database } from "@workspace/netsleuth-database";
 import * as schema from "@workspace/netsleuth-database/schema";
 import { createApp } from "../src/app.js";
-import { pool as applicationPool } from "../src/services/database.js";
-import { ACCESS_COOKIE, REFRESH_COOKIE } from "../src/modules/auth/auth.cookies.js";
-import { signToken } from "../src/modules/auth/auth.tokens.js";
+import { db as applicationDatabase, pool as applicationPool } from "../src/services/database.js";
+import { signToken } from "../src/modules/auth/auth.service.js";
+
+const ACCESS_COOKIE = "netsleuth_access";
+const REFRESH_COOKIE = "netsleuth_refresh";
 
 after(() => applicationPool.end());
 const rollback = new Error("ROLLBACK_AUTH_TESTS");
@@ -35,7 +37,11 @@ test("cookie authentication with real PostgreSQL, isolated and rolled back", asy
           await transaction.execute(sql.raw(migration.replaceAll('"public".', `"${schemaName}".`)));
         }
         const testDatabase = transaction as unknown as Database;
-        const app = createApp(async () => {}, testDatabase);
+        // Keep test-only dependency replacement out of production controllers.
+        for (const method of ["select", "insert", "update", "delete", "transaction"] as const) {
+          t.mock.method(applicationDatabase, method, testDatabase[method].bind(testDatabase));
+        }
+        const app = createApp(async () => {});
         const base = "/api/v1/auth";
 
         class Browser {

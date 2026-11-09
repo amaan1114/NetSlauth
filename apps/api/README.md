@@ -19,8 +19,7 @@ src/
     auth.controller.ts
     auth.service.ts
     auth.validation.ts
-    auth.tokens.ts
-    auth.cookies.ts
+    auth.repo.ts
   modules/README.md
   services/database.ts
   utils/
@@ -34,7 +33,8 @@ tests/{foundation,auth,auth-client}.test.ts
 ```
 
 - `config/env.ts`: loads a package-local ignored `.env`, validates configuration
-  with Zod, and reports invalid field names without showing credentials.
+  with Zod, reports invalid field names without showing credentials, and exports
+  the shared access/refresh cookie configuration.
 - `services/database.ts`: initializes one pool/Drizzle client from the existing
   database package and implements readiness using a real `SELECT 1`.
 - `app.ts`: installs Helmet, configured CORS, JSON/form parsers, health routes,
@@ -52,6 +52,9 @@ tests/{foundation,auth,auth-client}.test.ts
   It does not log query strings, request bodies, headers or credentials.
 - `modules/`: future feature modules are added when needed, not as empty folders.
   Keep routes, controllers, services and Zod validation separate.
+  Auth uses direct named controller/service exports with explicit try/catch and
+  `next(error)`. Database queries live in `auth.repo.ts`; JWT/session logic lives
+  in `auth.service.ts`. There are no controller/service/router factories.
 
 ## Configuration
 

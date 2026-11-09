@@ -1,4 +1,5 @@
 import "dotenv/config";
+import type { CookieOptions } from "express";
 import { z } from "zod";
 
 const result = z
@@ -52,3 +53,16 @@ if (!result.success) {
 }
 
 export const env = result.data;
+
+export const cookieConfig: CookieOptions = {
+  httpOnly: true,
+  secure: env.COOKIE_SECURE,
+  sameSite: env.COOKIE_SAME_SITE,
+  path: "/",
+  ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
+};
+
+export const refreshCookieConfig: CookieOptions = {
+  ...cookieConfig,
+  path: "/api/v1/auth",
+};

@@ -77,6 +77,11 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 - Apply this simplicity to development source, including the running starter
   server, not just compiled output. Development should run TypeScript source directly.
   **Why:** the user clarified that source development code is what they want simplified.
+- Keep auth code like the user's example: direct named controllers/services,
+  explicit try/catch with `next(error)`, and simple repository functions.
+  Avoid factories, unnecessary abstractions, and extra small helper files.
+  **Why:** the user said the previous auth implementation had too many files and
+  asked for clean code matching their example.
 - User authentication must use HTTP-only access/refresh cookies with separate
   signing secrets, refresh rotation, credentialed requests, and CSRF protection.
   Never use Authorization/Bearer authentication for users.

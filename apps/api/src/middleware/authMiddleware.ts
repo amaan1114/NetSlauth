@@ -1,15 +1,18 @@
 import type { RequestHandler } from "express";
-import type { AuthService } from "../modules/auth/auth.service.js";
-import { ACCESS_COOKIE, readCookie } from "../modules/auth/auth.cookies.js";
+import { validateAccessToken } from "../modules/auth/auth.service.js";
 import { HttpError } from "../utils/HttpError.js";
 
-export function authMiddleware(service: AuthService): RequestHandler {
-  return async (req, _res, next) => {
-    const token = readCookie(req, ACCESS_COOKIE);
-    if (!token) throw new HttpError(401, "Access cookie is required");
-    const identity = await service.validateAccess(token);
-    req.userId = identity.userId;
-    req.sessionId = identity.sessionId;
+export const authMiddleware: RequestHandler = async (req, _res, next) => {
+  try {
+    const accessToken: unknown = req.cookies.netsleuth_access;
+    if (typeof accessToken !== "string" || !accessToken || accessToken.length > 8192) {
+      throw new HttpError(401, "Access cookie is required");
+    }
+    const { userId, sessionId } = await validateAccessToken(accessToken);
+    req.userId = userId;
+    req.sessionId = sessionId;
     next();
-  };
-}
+  } catch (error) {
+    next(error);
+  }
+};

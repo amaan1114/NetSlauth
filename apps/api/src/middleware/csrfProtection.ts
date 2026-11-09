@@ -1,20 +1,19 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Request, RequestHandler, Response } from "express";
-import { env } from "../config/env.js";
+import { env, refreshCookieConfig } from "../config/env.js";
 import { HttpError } from "../utils/HttpError.js";
-import { AUTH_PATH, CSRF_COOKIE, REFRESH_COOKIE, cookieOptions, readCookie } from "../modules/auth/auth.cookies.js";
 
-function signature(context: string, refreshToken: string | undefined) {
+function signature(context: string, refreshToken: unknown) {
   return createHmac("sha256", env.JWT_REFRESH_SECRET)
-    .update(`netsleuth-csrf:${context}:${refreshToken ?? "anonymous"}`)
+    .update(`netsleuth-csrf:${context}:${typeof refreshToken === "string" && refreshToken.length <= 8192 ? refreshToken : "anonymous"}`)
     .digest("hex");
 }
 
 export function issueCsrfToken(req: Request, res: Response) {
-  const previous = readCookie(req, CSRF_COOKIE);
-  const context = previous && /^[a-f0-9]{64}$/.test(previous) ? previous : randomBytes(32).toString("hex");
-  res.cookie(CSRF_COOKIE, context, { ...cookieOptions(AUTH_PATH), maxAge: env.JWT_REFRESH_TTL_SECONDS * 1000 });
-  return signature(context, readCookie(req, REFRESH_COOKIE));
+  const previous: unknown = req.cookies.netsleuth_csrf;
+  const context = typeof previous === "string" && /^[a-f0-9]{64}$/.test(previous) ? previous : randomBytes(32).toString("hex");
+  res.cookie("netsleuth_csrf", context, { ...refreshCookieConfig, maxAge: env.JWT_REFRESH_TTL_SECONDS * 1000 });
+  return signature(context, req.cookies.netsleuth_refresh);
 }
 
 export const csrfProtection: RequestHandler = (req, _res, next) => {
@@ -25,13 +24,13 @@ export const csrfProtection: RequestHandler = (req, _res, next) => {
     next(new HttpError(403, "Origin is not allowed"));
     return;
   }
-  const context = readCookie(req, CSRF_COOKIE);
+  const context: unknown = req.cookies.netsleuth_csrf;
   const token = req.get("x-csrf-token");
-  if (!context || !/^[a-f0-9]{64}$/.test(context) || !token || !/^[a-f0-9]{64}$/.test(token)) {
+  if (typeof context !== "string" || !/^[a-f0-9]{64}$/.test(context) || !token || !/^[a-f0-9]{64}$/.test(token)) {
     next(new HttpError(403, "Invalid or missing CSRF token"));
     return;
   }
-  const expected = signature(context, readCookie(req, REFRESH_COOKIE));
+  const expected = signature(context, req.cookies.netsleuth_refresh);
   if (!timingSafeEqual(Buffer.from(token, "hex"), Buffer.from(expected, "hex"))) {
     next(new HttpError(403, "Invalid or missing CSRF token"));
     return;
