@@ -20,8 +20,9 @@ Security observability platform with monorepo, database, and backend foundations
   **Why:** applications should share one source of compiler/lint defaults.
 - See `README.md` for the complete file list, architecture, and run commands.
 - Current scope includes database/backend foundations and cookie-based user
-  authentication plus workspace/project creation and authorized reads.
-  Member-management endpoints, agent authentication, ingestion, monitoring
+  authentication plus workspace/project creation and authorized reads, and
+  agent registration, key authentication, and revocation.
+  Member-management endpoints, ingestion, monitoring
   logic, and dashboard features need separate requests.
 - The managed API workflow runs `apps/api` through Turbo; starter source remains
   preserved but is no longer the active backend.

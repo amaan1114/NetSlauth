@@ -9,6 +9,7 @@ import { checkDatabase } from "./services/database.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import workspaceRoutes from "./modules/workspaces/workspace.routes.js";
 import projectRoutes from "./modules/projects/project.routes.js";
+import agentRoutes from "./modules/agents/agent.routes.js";
 import { authMiddleware } from "./middleware/authMiddleware.js";
 import { HttpError } from "./utils/HttpError.js";
 import { HttpResponse } from "./utils/HttpResponse.js";
@@ -26,6 +27,7 @@ export function createApp(checkReady: () => Promise<void> = checkDatabase) {
   app.use("/api/v1/auth", authRoutes);
   app.use("/api/v1/workspaces", authMiddleware, workspaceRoutes);
   app.use("/api/v1/projects", authMiddleware, projectRoutes);
+  app.use("/api/v1/agents", authMiddleware, agentRoutes);
 
   const health = express.Router();
   health.get("/health", (_req, res) => {

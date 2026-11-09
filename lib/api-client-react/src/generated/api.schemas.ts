@@ -5,6 +5,71 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface AgentInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+}
+
+export type AgentStatus = typeof AgentStatus[keyof typeof AgentStatus];
+
+
+export const AgentStatus = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  INACTIVE: 'INACTIVE',
+} as const;
+
+export interface Agent {
+  id: string;
+  projectId: string;
+  name: string;
+  status: AgentStatus;
+  /** @nullable */
+  lastHeartbeatAt: string | null;
+  /** @nullable */
+  revokedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AgentRegistrationResponseData = {
+  agent: Agent;
+  /** One-time plaintext credential. Never returned on reads. */
+  apiKey: string;
+};
+
+export interface AgentRegistrationResponse {
+  success: true;
+  statusCode: 201;
+  message: string;
+  data: AgentRegistrationResponseData;
+}
+
+export type AgentResponseData = {
+  agent: Agent;
+};
+
+export interface AgentResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: AgentResponseData;
+}
+
+export type AgentListResponseData = {
+  agents: Agent[];
+};
+
+export interface AgentListResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: AgentListResponseData;
+}
+
 export interface CreateWorkspaceInput {
   /**
      * @minLength 1

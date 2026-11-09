@@ -48,7 +48,7 @@ All timestamps are `timestamptz` and exposed as JavaScript `Date` values.
 | workspaces | id, name, createdAt, updatedAt |
 | workspace_members | id, userId, workspaceId, role, createdAt |
 | projects | id, workspaceId, name, nullable description, createdAt, updatedAt |
-| agents | id, projectId, name, status, nullable lastHeartbeatAt, createdAt, updatedAt |
+| agents | id, projectId, name, nullable apiKeyHash, nullable revokedAt, status, nullable lastHeartbeatAt, createdAt, updatedAt |
 | network_events | id, agentId, eventId, eventType, sourceIp, nullable sourcePort, destinationIp, nullable destinationPort, protocol, metadata, occurredAt, receivedAt |
 | security_alerts | id, projectId, nullable agentId, title, description, severity, status, ruleId, fingerprint, evidence, firstSeenAt, lastSeenAt, createdAt, updatedAt |
 
@@ -92,7 +92,12 @@ exists in this phase.
 - Alert indexes support project/status/severity, project/lastSeenAt, and agent.
 - Alert `lastSeenAt` cannot precede `firstSeenAt`.
 - Event metadata and alert evidence are JSONB objects. Do not put raw packets,
-  credentials, or secrets in either field. No raw-payload or agent-key column exists.
+  credentials, or secrets in either field. No raw-payload or plaintext-key column exists.
+- Agent credential digests are unique when present; NULL permits older agents
+  to remain without credentials. `revokedAt` disables key authentication without
+  deleting the agent or its associated data. API code stores SHA-256 digests of
+  256-bit random keys, never plaintext keys. Public agent queries explicitly omit
+  the hash.
 - `$onUpdate` maintains `updatedAt` for Drizzle updates. Raw SQL must explicitly
   update that timestamp; this is not a database trigger.
 
@@ -119,6 +124,12 @@ pnpm --filter @workspace/netsleuth-database build
 
 Generation is offline and does not require credentials. `db:migrate` does require
 a valid connection URL. No migration runs on import, API startup, build, or deploy.
+The `0002_absurd_terrax.sql` migration adds nullable `api_key_hash` and `revoked_at`
+columns plus a unique hash constraint. Existing rows keep both fields NULL.
+For an already-populated database created outside Drizzle's migration journal,
+do not replay the initial migration or stamp migration history blindly. Inspect
+its current schema and apply only reviewed missing changes. The development
+agent-credential change was applied additively because its journal was empty.
 For Replit-managed production databases, use the supported Publish schema flow;
 do not run this development migration command as a production deploy hook.
 
@@ -159,9 +170,10 @@ are not automatically tenant-isolated.
 
 `passwordHash` is a required nonempty storage field, never a plaintext-password
 field. Callers must supply an actual secure password hash; the database does not
-hash or cryptographically verify arbitrary strings. Password hashing, response
-redaction, authentication, and agent credential issuance are not implemented.
-Do not expose complete user rows as API responses.
+hash or cryptographically verify arbitrary strings. Password hashing, user
+authentication, and agent credential issuance/verification are implemented by
+`apps/api`, not this database package. Do not expose complete user or agent rows
+as API responses: password/credential hashes are private.
 
 ## Verification
 
@@ -178,7 +190,7 @@ fall back to `DATABASE_URL`. Missing configuration or any failed assertion exits
 nonzero, rather than silently skipping. This command is not part of `pnpm test`,
 build, application startup, or migrations.
 
-The runner executes the generated `drizzle/0000_netsleuth_initial.sql` and
+The runner executes all generated `drizzle/*.sql` migrations in order and
 `tests/constraints.sql` inside one transaction on one checked-out connection.
 Every run creates a unique schema, rewrites the migration's `"public".`
 qualifiers to it, and sets a transaction-local search path with **no public

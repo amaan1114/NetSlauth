@@ -11,6 +11,74 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /v1/projects/{projectId}/agents:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    post:
+      operationId: registerAgent
+      security: [{ AccessCookie: [] }]
+      summary: Register an agent as a project member
+      description: Returns the plaintext API key once. Store it securely; it cannot be retrieved again.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentInput" }
+      responses:
+        "201":
+          description: Agent registered. Response is Cache-Control no-store.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentRegistrationResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
+    get:
+      operationId: getAgents
+      security: [{ AccessCookie: [] }]
+      summary: List up to 100 newest agents in an authorized project
+      responses:
+        "200":
+          description: Project agents, including revoked agents
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentListResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
+  /v1/agents/{agentId}:
+    parameters:
+      - $ref: "#/components/parameters/AgentId"
+    get:
+      operationId: getAgent
+      security: [{ AccessCookie: [] }]
+      summary: Fetch agent details as a member of its actual workspace
+      responses:
+        "200":
+          description: Agent details without credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
+  /v1/agents/{agentId}/revoke:
+    parameters:
+      - $ref: "#/components/parameters/AgentId"
+    post:
+      operationId: revokeAgent
+      security: [{ AccessCookie: [] }]
+      summary: Revoke an agent key as a project member
+      description: Subsequent agent authentication fails immediately after revocation completes.
+      responses:
+        "200":
+          description: Revoked agent details without credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentResponse" }
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "404": { $ref: "#/components/responses/AuthError" }
   /v1/workspaces:
     post:
       operationId: createWorkspace
@@ -227,12 +295,27 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   parameters:
+    ProjectId:
+      in: path
+      name: projectId
+      required: true
+      schema: { type: string, format: uuid }
+    AgentId:
+      in: path
+      name: agentId
+      required: true
+      schema: { type: string, format: uuid }
     WorkspaceId:
       in: path
       name: workspaceId
       required: true
       schema: { type: string, format: uuid }
   securitySchemes:
+    AgentKey:
+      type: apiKey
+      in: header
+      name: X-Agent-Key
+      description: Agent-only random credential. Never use user JWTs or cookies. No ingestion endpoints exist yet.
     AccessCookie:
       type: apiKey
       in: cookie
@@ -246,6 +329,64 @@ components:
           schema:
             $ref: "#/components/schemas/ApiErrorResponse"
   schemas:
+    AgentInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+    Agent:
+      type: object
+      additionalProperties: false
+      required: [id, projectId, name, status, lastHeartbeatAt, revokedAt, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        name: { type: string }
+        status: { type: string, enum: [ONLINE, OFFLINE, INACTIVE] }
+        lastHeartbeatAt: { type: [string, "null"], format: date-time }
+        revokedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AgentRegistrationResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 201 }
+        message: { type: string }
+        data:
+          type: object
+          required: [agent, apiKey]
+          properties:
+            agent: { $ref: "#/components/schemas/Agent" }
+            apiKey: { type: string, description: One-time plaintext credential. Never returned on reads. }
+    AgentResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [agent]
+          properties:
+            agent: { $ref: "#/components/schemas/Agent" }
+    AgentListResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [agents]
+          properties:
+            agents:
+              type: array
+              items: { $ref: "#/components/schemas/Agent" }
     CreateWorkspaceInput:
       type: object
       additionalProperties: false

@@ -7,6 +7,8 @@ export const agents = pgTable("agents", {
   id: uuid("id").defaultRandom().primaryKey(),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  apiKeyHash: text("api_key_hash").unique(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
   status: agentStatus("status").default("INACTIVE").notNull(),
   lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

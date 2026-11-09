@@ -1,0 +1,1 @@
+- [Development migration baseline](development-migration-baseline.md) — existing tables may predate Drizzle history; inspect before replaying migrations.

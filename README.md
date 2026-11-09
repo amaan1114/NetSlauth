@@ -186,8 +186,8 @@ prepared; no UI components or dashboard features have been generated.
 
 - **Ingestion pressure:** define batch limits, bounded queues, timeouts, retries,
   idempotency, and retention before handling high-volume security events.
-- **Identity and trust:** user cookie authentication is implemented; authenticate agents and authorize Socket.IO
-  subscriptions, isolate tenants, validate events, and protect secrets.
+- **Identity and trust:** user cookie and agent-key authentication are implemented;
+  authorize Socket.IO subscriptions, validate future events, and protect secrets.
 - **Contract evolution:** version event contracts so independently deployed
   agents can tolerate control-plane upgrades.
 - **Capture privileges:** tcpdump requires appropriate host visibility and
@@ -202,7 +202,9 @@ prepared; no UI components or dashboard features have been generated.
 
 Workspace/project creation and member-authorized reads are implemented; see
 `apps/api/README.md` for endpoints and permissions.
+Agent registration, project-scoped listing/details, credential revocation, and
+separate `X-Agent-Key` authentication middleware are also implemented.
 
-Agent authentication, ingestion, detections, PostgreSQL log
+Ingestion, detections, PostgreSQL log
 collection, packet capture, dashboards, Dockerfiles, and Compose are deferred.
 No simulated events are presented as real observations.

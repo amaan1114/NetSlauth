@@ -5,7 +5,7 @@ import { env, cookieConfig, refreshCookieConfig } from "../../config/env.js";
 import { registerSchema, loginSchema } from "./auth.validation.js";
 import {
   signUpService, signInService, getMeService,
-  refreshSessionService,
+  refreshTokenService,
 } from "./auth.service.js";
 
 export const signUpController: RequestHandler = async (req, res, next) => {
@@ -48,7 +48,7 @@ export const refreshSessionController: RequestHandler = async (req, res, next) =
     if (typeof token !== "string" || !token || token.length > 8192) {
       throw new HttpError(401, "Refresh cookie is required");
     }
-    const { user, accessToken, refreshToken, refreshLifetime } = await refreshSessionService(token);
+    const { user, accessToken, refreshToken, refreshLifetime } = await refreshTokenService(token);
     res.cookie("netsleuth_access", accessToken, { ...cookieConfig, maxAge: env.JWT_ACCESS_TTL_SECONDS * 1000 });
     res.cookie("netsleuth_refresh", refreshToken, { ...refreshCookieConfig, maxAge: refreshLifetime * 1000 });
     return res.json(new HttpResponse(200, "Session refreshed", { user }));

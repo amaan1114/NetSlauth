@@ -15,6 +15,13 @@
       "when": 1794203578237,
       "tag": "0001_refresh_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794208700097,
+      "tag": "0002_absurd_terrax",
+      "breakpoints": true
     }
   ]
 }

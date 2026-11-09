@@ -6,6 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './agent';
+export * from './agentInput';
+export * from './agentListResponse';
+export * from './agentListResponseData';
+export * from './agentRegistrationResponse';
+export * from './agentRegistrationResponseData';
+export * from './agentResponse';
+export * from './agentResponseData';
+export * from './agentStatus';
 export * from './apiErrorResponse';
 export * from './apiHealthResponse';
 export * from './apiHealthResponseData';

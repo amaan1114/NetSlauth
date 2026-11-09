@@ -25,6 +25,10 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AgentInput,
+  AgentListResponse,
+  AgentRegistrationResponse,
+  AgentResponse,
   ApiErrorResponse,
   ApiHealthResponse,
   ApiReadinessResponse,
@@ -68,6 +72,373 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getRegisterAgentUrl = (projectId: string,) => {
+
+
+
+
+  return `/api/v1/projects/${projectId}/agents`
+}
+
+/**
+ * Returns the plaintext API key once. Store it securely; it cannot be retrieved again.
+ * @summary Register an agent as a project member
+ */
+export const registerAgent = async (projectId: string,
+    agentInput: AgentInput, options?: Parameters<typeof customFetch>[1]): Promise<AgentRegistrationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AgentRegistrationResponse>(getRegisterAgentUrl(projectId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(agentInput)
+  }
+);}
+
+
+
+
+
+export const getRegisterAgentMutationKey = () => ['registerAgent'] as const;
+
+export const getRegisterAgentMutationOptions = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerAgent>>, TError,RegisterAgentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerAgent>>, TError,RegisterAgentMutationVariables, TContext> => {
+
+const mutationKey = getRegisterAgentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerAgent>>, RegisterAgentMutationVariables> = (props) => {
+          const {projectId,data} = props ?? {};
+
+          return  registerAgent(projectId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterAgentMutationResult = NonNullable<Awaited<ReturnType<typeof registerAgent>>>
+    export type RegisterAgentMutationBody = BodyType<AgentInput>
+    export type RegisterAgentMutationError = ErrorType<AuthErrorResponse>
+    export type RegisterAgentMutationVariables = {projectId: string;data: BodyType<AgentInput>}
+
+    /**
+ * @summary Register an agent as a project member
+ */
+export const useRegisterAgent = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerAgent>>, TError,RegisterAgentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof registerAgent>>,
+        TError,
+        RegisterAgentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRegisterAgentMutationOptions(options), queryClient);
+    }
+
+export const getGetAgentsUrl = (projectId: string,) => {
+
+
+
+
+  return `/api/v1/projects/${projectId}/agents`
+}
+
+/**
+ * @summary List up to 100 newest agents in an authorized project
+ */
+export const getAgents = async (projectId: string, options?: Parameters<typeof customFetch>[1]): Promise<AgentListResponse> => {
+
+  return customFetch<AgentListResponse>(getGetAgentsUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentsQueryKey = (projectId: string,) => {
+    return [
+    `/api/v1/projects/${projectId}/agents`
+    ] as const;
+    }
+
+
+export const getGetAgentsQueryOptions = <TData = Awaited<ReturnType<typeof getAgents>>, TError = ErrorType<AuthErrorResponse>>(projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentsQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgents>>> = ({ signal }) => getAgents(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgents>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof getAgents>>>
+export type GetAgentsQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetAgents<TData = Awaited<ReturnType<typeof getAgents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgents>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAgents>>,
+          TError,
+          Awaited<ReturnType<typeof getAgents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAgents<TData = Awaited<ReturnType<typeof getAgents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgents>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAgents>>,
+          TError,
+          Awaited<ReturnType<typeof getAgents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAgents<TData = Awaited<ReturnType<typeof getAgents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List up to 100 newest agents in an authorized project
+ */
+
+export function useGetAgents<TData = Awaited<ReturnType<typeof getAgents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAgentsQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAgentUrl = (agentId: string,) => {
+
+
+
+
+  return `/api/v1/agents/${agentId}`
+}
+
+/**
+ * @summary Fetch agent details as a member of its actual workspace
+ */
+export const getAgent = async (agentId: string, options?: Parameters<typeof customFetch>[1]): Promise<AgentResponse> => {
+
+  return customFetch<AgentResponse>(getGetAgentUrl(agentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentQueryKey = (agentId: string,) => {
+    return [
+    `/api/v1/agents/${agentId}`
+    ] as const;
+    }
+
+
+export const getGetAgentQueryOptions = <TData = Awaited<ReturnType<typeof getAgent>>, TError = ErrorType<AuthErrorResponse>>(agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentQueryKey(agentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgent>>> = ({ signal }) => getAgent(agentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: agentId !== null && agentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAgentQueryResult = NonNullable<Awaited<ReturnType<typeof getAgent>>>
+export type GetAgentQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetAgent<TData = Awaited<ReturnType<typeof getAgent>>, TError = ErrorType<AuthErrorResponse>>(
+ agentId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAgent>>,
+          TError,
+          Awaited<ReturnType<typeof getAgent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAgent<TData = Awaited<ReturnType<typeof getAgent>>, TError = ErrorType<AuthErrorResponse>>(
+ agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAgent>>,
+          TError,
+          Awaited<ReturnType<typeof getAgent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAgent<TData = Awaited<ReturnType<typeof getAgent>>, TError = ErrorType<AuthErrorResponse>>(
+ agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Fetch agent details as a member of its actual workspace
+ */
+
+export function useGetAgent<TData = Awaited<ReturnType<typeof getAgent>>, TError = ErrorType<AuthErrorResponse>>(
+ agentId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAgent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAgentQueryOptions(agentId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRevokeAgentUrl = (agentId: string,) => {
+
+
+
+
+  return `/api/v1/agents/${agentId}/revoke`
+}
+
+/**
+ * Subsequent agent authentication fails immediately after revocation completes.
+ * @summary Revoke an agent key as a project member
+ */
+export const revokeAgent = async (agentId: string, options?: Parameters<typeof customFetch>[1]): Promise<AgentResponse> => {
+
+  return customFetch<AgentResponse>(getRevokeAgentUrl(agentId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeAgentMutationKey = () => ['revokeAgent'] as const;
+
+export const getRevokeAgentMutationOptions = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAgent>>, TError,RevokeAgentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeAgent>>, TError,RevokeAgentMutationVariables, TContext> => {
+
+const mutationKey = getRevokeAgentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeAgent>>, RevokeAgentMutationVariables> = (props) => {
+          const {agentId} = props ?? {};
+
+          return  revokeAgent(agentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeAgentMutationResult = NonNullable<Awaited<ReturnType<typeof revokeAgent>>>
+
+    export type RevokeAgentMutationError = ErrorType<AuthErrorResponse>
+    export type RevokeAgentMutationVariables = {agentId: string}
+
+    /**
+ * @summary Revoke an agent key as a project member
+ */
+export const useRevokeAgent = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeAgent>>, TError,RevokeAgentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof revokeAgent>>,
+        TError,
+        RevokeAgentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRevokeAgentMutationOptions(options), queryClient);
+    }
 
 export const getCreateWorkspaceUrl = () => {
 

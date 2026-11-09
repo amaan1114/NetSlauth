@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import test from "node:test";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
@@ -11,12 +11,11 @@ test("generated migration, database constraints, and real scoped query helpers",
   // Deliberately no fallback to DATABASE_URL or dotenv: this command is opt-in.
   const connectionString = process.env.TEST_DATABASE_URL;
   assert.ok(connectionString, "Set TEST_DATABASE_URL to a disposable PostgreSQL database to run test:db.");
-  const migration = await readFile(new URL("../drizzle/0000_netsleuth_initial.sql", import.meta.url), "utf8");
+  const migrationDirectory = new URL("../drizzle/", import.meta.url);
   const constraints = await readFile(new URL("./constraints.sql", import.meta.url), "utf8");
   // Generated locally, never user-supplied; fits PostgreSQL's 63-byte identifier limit.
   const schemaName = `netsleuth_test_${randomUUID().replaceAll("-", "")}`;
   const quotedSchema = `"${schemaName}"`;
-  const isolatedMigration = migration.replaceAll('"public".', `${quotedSchema}.`);
   const pool = new pg.Pool({
     connectionString, max: 1, connectionTimeoutMillis: 10_000,
     statement_timeout: 30_000, idle_in_transaction_session_timeout: 60_000,
@@ -31,7 +30,10 @@ test("generated migration, database constraints, and real scoped query helpers",
       await client.query(`CREATE SCHEMA ${quotedSchema}`);
       // No public fallback: a missing test table must fail, not hit application data.
       await client.query(`SET LOCAL search_path TO ${quotedSchema}, pg_catalog`);
-      await client.query(isolatedMigration);
+      for (const name of (await readdir(migrationDirectory)).filter((name) => /^\d+.*\.sql$/.test(name)).sort()) {
+        const migration = await readFile(new URL(name, migrationDirectory), "utf8");
+        await client.query(migration.replaceAll('"public".', `${quotedSchema}.`));
+      }
       // The fixture SQL refuses to run without this transaction-local harness marker.
       await client.query("SELECT set_config('netsleuth.test_schema', $1, true)", [schemaName]);
       await client.query(constraints);

@@ -10,15 +10,27 @@ export const projectScopeSchema = z.object({
 
 export type ProjectScope = z.infer<typeof projectScopeSchema>;
 
+// Explicit projection shared by agent reads and writes: credentials never leave the repository.
+export const publicAgentColumns = {
+  id: agents.id,
+  projectId: agents.projectId,
+  name: agents.name,
+  status: agents.status,
+  lastHeartbeatAt: agents.lastHeartbeatAt,
+  revokedAt: agents.revokedAt,
+  createdAt: agents.createdAt,
+  updatedAt: agents.updatedAt,
+};
+
 // Callers must first authorize the user's membership in the supplied workspace.
 // Every monitoring read joins back to projects and checks BOTH scope identifiers.
 export function listAgentsInProject(db: Database, scope: ProjectScope) {
   const { workspaceId, projectId } = projectScopeSchema.parse(scope);
-  return db.select(getTableColumns(agents))
+  return db.select(publicAgentColumns)
     .from(agents)
     .innerJoin(projects, eq(agents.projectId, projects.id))
     .where(and(eq(projects.workspaceId, workspaceId), eq(projects.id, projectId)))
-    .orderBy(desc(agents.createdAt))
+    .orderBy(desc(agents.createdAt), agents.id)
     .limit(100);
 }
 

@@ -9,6 +9,121 @@ import * as zod from 'zod';
 
 
 /**
+ * Returns the plaintext API key once. Store it securely; it cannot be retrieved again.
+ * @summary Register an agent as a project member
+ */
+export const RegisterAgentParams = zod.object({
+  "projectId": zod.coerce.string().uuid()
+})
+
+export const registerAgentBodyNameMax = 100;
+
+
+
+export const RegisterAgentBody = zod.object({
+  "name": zod.string().min(1).max(registerAgentBodyNameMax)
+})
+
+export const RegisterAgentResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(201),
+  "message": zod.string(),
+  "data": zod.object({
+  "agent": zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "name": zod.string(),
+  "status": zod.enum(['ONLINE', 'OFFLINE', 'INACTIVE']),
+  "lastHeartbeatAt": zod.coerce.date().nullable(),
+  "revokedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "apiKey": zod.string().describe('One-time plaintext credential. Never returned on reads.')
+})
+})
+
+
+/**
+ * @summary List up to 100 newest agents in an authorized project
+ */
+export const GetAgentsParams = zod.object({
+  "projectId": zod.coerce.string().uuid()
+})
+
+export const GetAgentsResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "agents": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "name": zod.string(),
+  "status": zod.enum(['ONLINE', 'OFFLINE', 'INACTIVE']),
+  "lastHeartbeatAt": zod.coerce.date().nullable(),
+  "revokedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+})
+
+
+/**
+ * @summary Fetch agent details as a member of its actual workspace
+ */
+export const GetAgentParams = zod.object({
+  "agentId": zod.coerce.string().uuid()
+})
+
+export const GetAgentResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "agent": zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "name": zod.string(),
+  "status": zod.enum(['ONLINE', 'OFFLINE', 'INACTIVE']),
+  "lastHeartbeatAt": zod.coerce.date().nullable(),
+  "revokedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+/**
+ * Subsequent agent authentication fails immediately after revocation completes.
+ * @summary Revoke an agent key as a project member
+ */
+export const RevokeAgentParams = zod.object({
+  "agentId": zod.coerce.string().uuid()
+})
+
+export const RevokeAgentResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "agent": zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "name": zod.string(),
+  "status": zod.enum(['ONLINE', 'OFFLINE', 'INACTIVE']),
+  "lastHeartbeatAt": zod.coerce.date().nullable(),
+  "revokedAt": zod.coerce.date().nullable(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+/**
  * @summary Create a workspace and its OWNER membership atomically
  */
 export const createWorkspaceBodyNameMax = 100;

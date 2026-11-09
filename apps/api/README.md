@@ -1,8 +1,8 @@
 # NetSleuth backend foundation
 
-Small Express 5/TypeScript backend with cookie authentication and authorized
-workspace/project management. Agent authentication, ingestion, detections,
-and Socket.IO application events are not implemented.
+Small Express 5/TypeScript backend with cookie authentication, authorized
+workspace/project management, and agent registration/key authentication.
+Ingestion, detections, and Socket.IO application events are not implemented.
 
 ## Structure
 
@@ -31,6 +31,13 @@ src/
     project.service.ts
     project.repo.ts
     project.validation.ts
+  modules/agents/
+    agent.routes.ts
+    agent.controller.ts
+    agent.service.ts
+    agent.repo.ts
+    agent.validation.ts
+    agent.middleware.ts
   modules/README.md
   services/database.ts
   utils/
@@ -40,7 +47,7 @@ src/
   app.ts
   server.ts
   index.ts
-tests/{foundation,auth,auth-client,workspaces-projects}.test.ts
+tests/{foundation,auth,auth-client,workspaces-projects,agents}.test.ts
 .env.example
 ```
 
@@ -290,5 +297,52 @@ back all fixtures. They cover all six protected endpoints, OWNER/ADMIN/MEMBER
 permissions, role changes, removed memberships, cross-workspace UUID attempts,
 validation, and transaction rollback without exposing internal database errors.
 No schema changes or new environment variables are required. This module does
-not add member-management endpoints, agent registration/credentials, ingestion,
+not add member-management endpoints, ingestion,
 detections, or alerts, and does not change cookie authentication.
+
+## Agent registration and credentials
+
+Management uses the existing user access cookie, never an agent key:
+
+| Method | Endpoint | Permission |
+| --- | --- | --- |
+| POST | `/api/v1/projects/:projectId/agents` | Any member of the project's workspace |
+| GET | `/api/v1/projects/:projectId/agents` | Any member; up to 100 newest agents |
+| GET | `/api/v1/agents/:agentId` | Member of the agent's actual workspace |
+| POST | `/api/v1/agents/:agentId/revoke` | Member of the agent's actual workspace |
+
+Registration accepts `{ "name": "My sensor" }`. Names are trimmed, 1–100
+characters; unknown fields are rejected. The server derives ownership from the
+authorized project, not body fields. It returns 201 with
+`data: { agent, apiKey }` and `Cache-Control: no-store`. Copy the key into the
+agent's secure configuration immediately: it is returned only in that response.
+Reads/revocation return 200 with `{ agents }` or `{ agent }` inside `data`,
+never keys or hashes. Revoked agents remain visible for management.
+Missing user cookies return 401, invalid inputs return 400, and inaccessible or
+missing projects/agents return 404 without revealing cross-workspace existence.
+
+Keys contain 32 cryptographically random bytes (256 bits), encoded as
+`ns_agent_` followed by 64 lowercase hex characters. Only the SHA-256 digest is
+stored in the unique `agents.api_key_hash` column. Fast SHA-256 is appropriate
+for random high-entropy keys; user passwords still use bcrypt.
+The nullable `revoked_at` timestamp records revocation. Migration
+`packages/database/drizzle/0002_absurd_terrax.sql` adds both columns and the
+unique constraint without changing existing data. Older agents have a NULL
+hash and cannot authenticate; this phase does not add a reissue/rotation endpoint.
+
+`agentAuthMiddleware` reads **only `X-Agent-Key`**, queries the current database
+row by hash with `revokedAt IS NULL`, and attaches `req.agentId` and
+`req.projectId` from that row. Cookies, user JWTs, Authorization headers, and
+client-supplied project IDs never establish agent identity. No credential cache
+is used, so authentication attempts after a completed revocation fail immediately.
+Already-running requests are not cancelled. Revoking sets status to INACTIVE;
+repeating revocation returns the already-revoked agent.
+
+There is intentionally no production agent-authenticated endpoint yet: the
+middleware is ready for future agent routes, without adding ingestion or
+monitoring. Its integration tests mount a test-only probe and exercise the real
+middleware against PostgreSQL. They cover successful registration, hash-only
+storage, unique keys, project binding, strict validation, read/revoke authorization,
+revocation, deletion, removed memberships, rejection of JWTs/cookies/invalid keys,
+and non-disclosure in responses and request logs. All fixtures roll back.
+No new secrets, packages, or environment variables are required.
