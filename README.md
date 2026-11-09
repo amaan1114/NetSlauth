@@ -36,16 +36,18 @@ pnpm --filter @workspace/netsleuth-web dev
 # Express, default port 4000; requires DATABASE_URL
 pnpm exec turbo run dev --filter=@workspace/netsleuth-api
 
-# Standalone agent entry point; prints its unimplemented status and exits
+# Standalone Linux agent; requires ss and configured API URL/agent key
 pnpm --filter @workspace/netsleuth-agent start
 ```
 
-The agent's `start` command requires a build first. Its `dev` command uses
-`tsx watch` to rerun the entry point after edits; it does not start collection.
+The agent's `start` command requires a build first and starts socket-table
+polling and heartbeat reporting. Its `dev` command uses `tsx watch` to rerun
+the TypeScript source after edits. See [agent setup](apps/agent/README.md) for
+secure configuration and Linux visibility limitations.
 After building, use `start` instead of `dev` for web and API to run compiled output.
 The API exposes liveness at `/health` and a real PostgreSQL check at
 `/health/ready`. Neither endpoint claims that ingestion or detection works.
-The agent does not run a background collector.
+The agent is independent and is not started by the API workflow.
 
 These are portable local-development commands. The Replit API workflow now points
 at `apps/api` through Turbo. Existing `artifacts/`, `lib/`, and `scripts/` retain
@@ -164,8 +166,9 @@ Agent ── HTTP event ingestion ──> API
 ```
 
 The API implements REST authentication, workspace/project management, agent
-credentials, and event ingestion/persistence. The standalone agent remains a
-stub; no collector or transport runs yet. Socket.IO has a basic server handshake
+credentials, and event ingestion/persistence. The standalone Linux agent polls
+TCP/UDP socket metadata with ss, publishes new observations, and sends periodic
+heartbeats when configured. Socket.IO has a basic server handshake
 but no authenticated subscriptions or application events. Shared Zod event
 contracts and response interfaces live in `packages/shared`.
 The database package implements Drizzle/PostgreSQL schema and migration tooling.

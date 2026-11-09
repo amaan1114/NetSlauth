@@ -25,8 +25,10 @@ Security observability platform with monorepo, database, and backend foundations
   event ingestion with idempotent persistence and heartbeat updates, initial
   authentication-failure/database-destination detection, project policies, and
   paginated authorized alert listing.
-  Member-management endpoints, additional detection rules, monitoring
-  logic, and dashboard features need separate requests.
+  The independent Linux agent polls ss for socket metadata and publishes new
+  observations/heartbeats using its configured agent key.
+  Member-management endpoints, additional detection rules, packet capture,
+  authentication-log collection, and dashboard features need separate requests.
 - The managed API workflow runs `apps/api` through Turbo; starter source remains
   preserved but is no longer the active backend.
   **Why:** editing the NetSleuth backend must affect the server used in development.
