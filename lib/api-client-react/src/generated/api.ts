@@ -37,6 +37,8 @@ import type {
   AuthUserResponse,
   CreateProjectInput,
   CreateWorkspaceInput,
+  EventIngestionInput,
+  EventIngestionResponse,
   HealthStatus,
   LoginInput,
   ProjectListResponse,
@@ -72,6 +74,99 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getIngestEventsUrl = () => {
+
+
+
+
+  return `/api/v1/ingest/events`
+}
+
+/**
+ * Agent identity and project scope come only from X-Agent-Key.
+ * The whole request is validated before writing. Inserts and heartbeat updates
+ * are atomic; retries are deduplicated per agent/eventId.
+ * Only newly inserted heartbeats update agent liveness using the server time.
+ * Cookies and Authorization headers cannot authenticate this endpoint.
+ * @summary Persist one event or a batch of up to 100 events from an authenticated agent
+ */
+export const ingestEvents = async (eventIngestionInput: EventIngestionInput, options?: Parameters<typeof customFetch>[1]): Promise<EventIngestionResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<EventIngestionResponse>(getIngestEventsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(eventIngestionInput)
+  }
+);}
+
+
+
+
+
+export const getIngestEventsMutationKey = () => ['ingestEvents'] as const;
+
+export const getIngestEventsMutationOptions = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ingestEvents>>, TError,IngestEventsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof ingestEvents>>, TError,IngestEventsMutationVariables, TContext> => {
+
+const mutationKey = getIngestEventsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ingestEvents>>, IngestEventsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  ingestEvents(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type IngestEventsMutationResult = NonNullable<Awaited<ReturnType<typeof ingestEvents>>>
+    export type IngestEventsMutationBody = BodyType<EventIngestionInput>
+    export type IngestEventsMutationError = ErrorType<AuthErrorResponse>
+    export type IngestEventsMutationVariables = {data: BodyType<EventIngestionInput>}
+
+    /**
+ * @summary Persist one event or a batch of up to 100 events from an authenticated agent
+ */
+export const useIngestEvents = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ingestEvents>>, TError,IngestEventsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof ingestEvents>>,
+        TError,
+        IngestEventsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getIngestEventsMutationOptions(options), queryClient);
+    }
 
 export const getRegisterAgentUrl = (projectId: string,) => {
 

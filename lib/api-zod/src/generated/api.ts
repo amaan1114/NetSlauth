@@ -9,6 +9,71 @@ import * as zod from 'zod';
 
 
 /**
+ * Agent identity and project scope come only from X-Agent-Key.
+ * The whole request is validated before writing. Inserts and heartbeat updates
+ * are atomic; retries are deduplicated per agent/eventId.
+ * Only newly inserted heartbeats update agent liveness using the server time.
+ * Cookies and Authorization headers cannot authenticate this endpoint.
+ * @summary Persist one event or a batch of up to 100 events from an authenticated agent
+ */
+export const ingestEventsBodyOneSourcePortMin = 0;
+export const ingestEventsBodyOneSourcePortMax = 65535;
+
+export const ingestEventsBodyOneDestinationPortMin = 0;
+export const ingestEventsBodyOneDestinationPortMax = 65535;
+
+export const ingestEventsBodyTwoItemSourcePortMin = 0;
+export const ingestEventsBodyTwoItemSourcePortMax = 65535;
+
+export const ingestEventsBodyTwoItemDestinationPortMin = 0;
+export const ingestEventsBodyTwoItemDestinationPortMax = 65535;
+
+export const ingestEventsBodyTwoMax = 100;
+
+
+
+export const IngestEventsBody = zod.union([zod.object({
+  "eventId": zod.string().uuid().describe('Agent-generated UUID, normalized to lowercase for deduplication.'),
+  "eventType": zod.enum(['NETWORK_CONNECTION_ATTEMPT', 'NETWORK_CONNECTION_ESTABLISHED', 'AUTHENTICATION_FAILURE', 'AUTHENTICATION_SUCCESS', 'SERVICE_DISCOVERED', 'AGENT_HEARTBEAT']),
+  "sourceIp": zod.string().describe('A single IPv4 or IPv6 address, without a CIDR suffix.'),
+  "sourcePort": zod.number().int().min(ingestEventsBodyOneSourcePortMin).max(ingestEventsBodyOneSourcePortMax).optional(),
+  "destinationIp": zod.string().describe('A single IPv4 or IPv6 address, without a CIDR suffix.'),
+  "destinationPort": zod.number().int().min(ingestEventsBodyOneDestinationPortMin).max(ingestEventsBodyOneDestinationPortMax).optional(),
+  "protocol": zod.enum(['TCP', 'UDP', 'OTHER']),
+  "metadata": zod.record(zod.string(), zod.unknown()).optional().describe('Optional JSON metadata only. Do not include raw packets, payloads, or credentials.'),
+  "occurredAt": zod.coerce.date().describe('ISO 8601 timestamp with Z or an explicit timezone offset.')
+}),zod.array(zod.object({
+  "eventId": zod.string().uuid().describe('Agent-generated UUID, normalized to lowercase for deduplication.'),
+  "eventType": zod.enum(['NETWORK_CONNECTION_ATTEMPT', 'NETWORK_CONNECTION_ESTABLISHED', 'AUTHENTICATION_FAILURE', 'AUTHENTICATION_SUCCESS', 'SERVICE_DISCOVERED', 'AGENT_HEARTBEAT']),
+  "sourceIp": zod.string().describe('A single IPv4 or IPv6 address, without a CIDR suffix.'),
+  "sourcePort": zod.number().int().min(ingestEventsBodyTwoItemSourcePortMin).max(ingestEventsBodyTwoItemSourcePortMax).optional(),
+  "destinationIp": zod.string().describe('A single IPv4 or IPv6 address, without a CIDR suffix.'),
+  "destinationPort": zod.number().int().min(ingestEventsBodyTwoItemDestinationPortMin).max(ingestEventsBodyTwoItemDestinationPortMax).optional(),
+  "protocol": zod.enum(['TCP', 'UDP', 'OTHER']),
+  "metadata": zod.record(zod.string(), zod.unknown()).optional().describe('Optional JSON metadata only. Do not include raw packets, payloads, or credentials.'),
+  "occurredAt": zod.coerce.date().describe('ISO 8601 timestamp with Z or an explicit timezone offset.')
+})).min(1).max(ingestEventsBodyTwoMax)])
+
+export const ingestEventsResponseDataInsertedCountMin = 0;
+export const ingestEventsResponseDataInsertedCountMax = 100;
+
+export const ingestEventsResponseDataDuplicateCountMin = 0;
+export const ingestEventsResponseDataDuplicateCountMax = 100;
+
+
+
+export const IngestEventsResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "insertedCount": zod.number().int().min(ingestEventsResponseDataInsertedCountMin).max(ingestEventsResponseDataInsertedCountMax),
+  "duplicateCount": zod.number().int().min(ingestEventsResponseDataDuplicateCountMin).max(ingestEventsResponseDataDuplicateCountMax)
+})
+})
+
+
+/**
  * Returns the plaintext API key once. Store it securely; it cannot be retrieved again.
  * @summary Register an agent as a project member
  */

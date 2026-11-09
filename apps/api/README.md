@@ -2,7 +2,8 @@
 
 Small Express 5/TypeScript backend with cookie authentication, authorized
 workspace/project management, and agent registration/key authentication.
-Ingestion, detections, and Socket.IO application events are not implemented.
+Network event ingestion is implemented. Detections and Socket.IO application
+events are not implemented.
 
 ## Structure
 
@@ -38,6 +39,11 @@ src/
     agent.repo.ts
     agent.validation.ts
     agent.middleware.ts
+  modules/events/
+    event.routes.ts
+    event.controller.ts
+    event.service.ts
+    event.validation.ts
   modules/README.md
   services/database.ts
   utils/
@@ -47,7 +53,7 @@ src/
   app.ts
   server.ts
   index.ts
-tests/{foundation,auth,auth-client,workspaces-projects,agents}.test.ts
+tests/{foundation,auth,auth-client,workspaces-projects,agents,events}.test.ts
 .env.example
 ```
 
@@ -338,11 +344,98 @@ is used, so authentication attempts after a completed revocation fail immediatel
 Already-running requests are not cancelled. Revoking sets status to INACTIVE;
 repeating revocation returns the already-revoked agent.
 
-There is intentionally no production agent-authenticated endpoint yet: the
-middleware is ready for future agent routes, without adding ingestion or
-monitoring. Its integration tests mount a test-only probe and exercise the real
-middleware against PostgreSQL. They cover successful registration, hash-only
+The ingestion endpoint below uses this middleware, separately from the
+user-authenticated management routes. Agent integration tests also mount a
+test-only probe and exercise the real middleware against PostgreSQL. They cover successful registration, hash-only
 storage, unique keys, project binding, strict validation, read/revoke authorization,
 revocation, deletion, removed memberships, rejection of JWTs/cookies/invalid keys,
 and non-disclosure in responses and request logs. All fixtures roll back.
 No new secrets, packages, or environment variables are required.
+
+## Network event ingestion
+
+**`POST /api/v1/ingest/events`**
+
+Send `Content-Type: application/json` and `X-Agent-Key` with the key returned at
+agent registration. User cookies and Authorization headers cannot authenticate
+this endpoint. Use HTTPS outside local development. The body is either one event
+object or a raw array of **1–100 events**, not an `{ events: [...] }` wrapper.
+The existing 1 MiB request limit still applies.
+
+Reusable schemas and inferred types live in
+`packages/shared/src/events.ts` and are exported by `@workspace/netsleuth-shared`
+for both API and agent use. `event.validation.ts` reuses that schema rather than
+defining a second validation implementation.
+
+| Field | Validation |
+| --- | --- |
+| eventId | Required agent-generated UUID; lowercase normalization for deduplication |
+| eventType | One of the six values below |
+| sourceIp, destinationIp | Required IPv4 or IPv6 address; CIDR ranges rejected |
+| sourcePort, destinationPort | Optional integer 0–65535; omitted fields store NULL |
+| protocol | TCP, UDP, or OTHER |
+| metadata | Optional JSON object; omitted field stores `{}` |
+| occurredAt | Required ISO 8601 timestamp with `Z` or timezone offset |
+
+Supported event types:
+`NETWORK_CONNECTION_ATTEMPT`, `NETWORK_CONNECTION_ESTABLISHED`,
+`AUTHENTICATION_FAILURE`, `AUTHENTICATION_SUCCESS`, `SERVICE_DISCOVERED`,
+and `AGENT_HEARTBEAT`.
+
+Unknown top-level fields, including `agentId`, `projectId`, and raw payload
+fields, are rejected. Metadata is for structured context only; clients must not
+put raw packets, packet payloads, credentials, or secrets in it. Metadata never
+determines ownership. The API does not capture packets or generate events.
+
+Example request body:
+
+```json
+{
+  "eventId": "15b0f9d0-72c8-4da0-8d7c-9278ae612bbe",
+  "eventType": "NETWORK_CONNECTION_ATTEMPT",
+  "sourceIp": "192.0.2.10",
+  "sourcePort": 45123,
+  "destinationIp": "198.51.100.20",
+  "destinationPort": 443,
+  "protocol": "TCP",
+  "metadata": { "service": "https" },
+  "occurredAt": "2026-11-09T07:00:00Z"
+}
+```
+
+Successful response, only after the transaction commits (HTTP 200):
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Events ingested successfully",
+  "data": { "insertedCount": 1, "duplicateCount": 0 }
+}
+```
+
+Retrying the same event returns `{ "insertedCount": 0, "duplicateCount": 1 }`
+inside `data`. The existing `(agentId, eventId)` unique constraint is used with
+`ON CONFLICT DO NOTHING`, including duplicates within one batch. For duplicate
+IDs, the first persisted event wins; retries do not overwrite its contents.
+Different agents may use the same event UUID. No schema migration is needed.
+
+The whole input is validated before any write. One database transaction locks
+and rechecks the middleware-resolved agent/project and revocation state, inserts
+events, and, for newly inserted heartbeats, sets only that agent to ONLINE with
+`lastHeartbeatAt` from the server clock. Retried heartbeats do not advance it.
+The lock serializes writes with revocation; no process-local credential cache
+can bypass the current database state. If any write fails, all inserts and the
+heartbeat update roll back, and the response is not successful.
+
+Errors use the existing global handler: 400 invalid input/JSON, 401
+missing/invalid/revoked agent key, 413 oversized body, or sanitized 500 for an
+unexpected database failure. The service adds no detection rules, Redis/Kafka,
+queues, collectors, or frontend functionality.
+
+Integration tests use the real endpoint, middleware, and PostgreSQL in an
+isolated, rolled-back schema. They check single/batch persistence, supported
+types, malformed data, full-batch rejection, size bounds, duplicate counts,
+UUID casing, agent isolation, heartbeat/retry behavior, revoked credentials,
+and rollback after a forced database heartbeat failure. Run:
+`pnpm --filter @workspace/netsleuth-api test`.

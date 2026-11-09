@@ -5,6 +5,79 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type NetworkEventInputEventType = typeof NetworkEventInputEventType[keyof typeof NetworkEventInputEventType];
+
+
+export const NetworkEventInputEventType = {
+  NETWORK_CONNECTION_ATTEMPT: 'NETWORK_CONNECTION_ATTEMPT',
+  NETWORK_CONNECTION_ESTABLISHED: 'NETWORK_CONNECTION_ESTABLISHED',
+  AUTHENTICATION_FAILURE: 'AUTHENTICATION_FAILURE',
+  AUTHENTICATION_SUCCESS: 'AUTHENTICATION_SUCCESS',
+  SERVICE_DISCOVERED: 'SERVICE_DISCOVERED',
+  AGENT_HEARTBEAT: 'AGENT_HEARTBEAT',
+} as const;
+
+export type NetworkEventInputProtocol = typeof NetworkEventInputProtocol[keyof typeof NetworkEventInputProtocol];
+
+
+export const NetworkEventInputProtocol = {
+  TCP: 'TCP',
+  UDP: 'UDP',
+  OTHER: 'OTHER',
+} as const;
+
+/**
+ * Optional JSON metadata only. Do not include raw packets, payloads, or credentials.
+ */
+export type NetworkEventInputMetadata = { [key: string]: unknown };
+
+export interface NetworkEventInput {
+  /** Agent-generated UUID, normalized to lowercase for deduplication. */
+  eventId: string;
+  eventType: NetworkEventInputEventType;
+  /** A single IPv4 or IPv6 address, without a CIDR suffix. */
+  sourceIp: string;
+  /**
+     * @minimum 0
+     * @maximum 65535
+     */
+  sourcePort?: number;
+  /** A single IPv4 or IPv6 address, without a CIDR suffix. */
+  destinationIp: string;
+  /**
+     * @minimum 0
+     * @maximum 65535
+     */
+  destinationPort?: number;
+  protocol: NetworkEventInputProtocol;
+  /** Optional JSON metadata only. Do not include raw packets, payloads, or credentials. */
+  metadata?: NetworkEventInputMetadata;
+  /** ISO 8601 timestamp with Z or an explicit timezone offset. */
+  occurredAt: string;
+}
+
+export type EventIngestionInput = NetworkEventInput | NetworkEventInput[];
+
+export type EventIngestionResponseData = {
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  insertedCount: number;
+  /**
+     * @minimum 0
+     * @maximum 100
+     */
+  duplicateCount: number;
+};
+
+export interface EventIngestionResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: EventIngestionResponseData;
+}
+
 export interface AgentInput {
   /**
      * @minLength 1

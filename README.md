@@ -87,7 +87,8 @@ agent -> shared
 all five code workspaces -> config (development dependency only)
 ```
 
-All arrows are explicit `workspace:*` links. Shared response interfaces live in the shared package.
+All arrows are explicit `workspace:*` links. Shared response interfaces and
+reusable event Zod schemas/types live in the shared package.
 The database package owns the schema, client, and workspace-scoped read helpers.
 The agent has no dependency on the API, frontend, or database package.
 To build the agent and only its prerequisites:
@@ -162,18 +163,19 @@ Web ── REST / Socket.IO ──> API ── Drizzle ──> PostgreSQL
 Agent ── HTTP event ingestion ──> API
 ```
 
-These connections are **planned, not implemented**. Socket.IO dependencies are
-declared, but no server, client, or event listeners are enabled. Shared Zod
-contracts belong in `packages/shared`; its entry point is intentionally empty.
+The API implements REST authentication, workspace/project management, agent
+credentials, and event ingestion/persistence. The standalone agent remains a
+stub; no collector or transport runs yet. Socket.IO has a basic server handshake
+but no authenticated subscriptions or application events. Shared Zod event
+contracts and response interfaces live in `packages/shared`.
 The database package implements Drizzle/PostgreSQL schema and migration tooling.
 Importing it has no connection side effects; call `createDatabase()` to initialize
 a client with `DATABASE_URL`. `lib/db` delegates to it for starter compatibility.
 
-The API's `createApp` function is the future composition boundary. Organize
-future features into modules with transport/controllers, application services,
-and domain layers; inject repositories, collectors, and detection policies at
-composition time rather than binding them to Express. Do not add empty feature
-implementations just to imply those systems already exist.
+The API's `createApp` function wires routes and middleware. Keep feature modules
+simple: routes, thin controllers, services, and validation, with repository
+functions where needed. Do not add empty feature implementations just to imply
+those systems already exist.
 
 The agent must never import API internals or database repositories. It should
 eventually depend only on shared contracts and its own collection/transport code.
@@ -184,10 +186,12 @@ prepared; no UI components or dashboard features have been generated.
 
 ## Architectural risks to resolve in later stages
 
-- **Ingestion pressure:** define batch limits, bounded queues, timeouts, retries,
-  idempotency, and retention before handling high-volume security events.
+- **Ingestion pressure:** requests are limited to 100 events/1 MiB and use
+  per-agent idempotency. Define backpressure and retention before handling
+  high-volume security events; no background queue exists yet.
 - **Identity and trust:** user cookie and agent-key authentication are implemented;
-  authorize Socket.IO subscriptions, validate future events, and protect secrets.
+  authorize Socket.IO subscriptions and protect secrets. Ingested events are
+  validated using the shared contract.
 - **Contract evolution:** version event contracts so independently deployed
   agents can tolerate control-plane upgrades.
 - **Capture privileges:** tcpdump requires appropriate host visibility and
@@ -204,7 +208,9 @@ Workspace/project creation and member-authorized reads are implemented; see
 `apps/api/README.md` for endpoints and permissions.
 Agent registration, project-scoped listing/details, credential revocation, and
 separate `X-Agent-Key` authentication middleware are also implemented.
+`POST /api/v1/ingest/events` accepts a single event or batch, persists validated
+events with duplicate counts, and updates agent heartbeat state atomically.
 
-Ingestion, detections, PostgreSQL log
+Detections, PostgreSQL log
 collection, packet capture, dashboards, Dockerfiles, and Compose are deferred.
 No simulated events are presented as real observations.
