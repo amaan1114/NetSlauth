@@ -39,6 +39,7 @@ minimumReleaseAgeExclude:
   - stripe-replit-sync
 
 onlyBuiltDependencies:
+  - bcrypt
   - '@swc/core'
   - esbuild
   - msw

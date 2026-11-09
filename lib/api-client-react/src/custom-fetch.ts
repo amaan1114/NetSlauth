@@ -6,7 +6,6 @@ export type ErrorType<T = unknown> = ApiError<T>;
 
 export type BodyType<T> = T;
 
-export type AuthTokenGetter = () => Promise<string | null> | string | null;
 
 const NO_BODY_STATUS = new Set([204, 205, 304]);
 const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
@@ -16,7 +15,7 @@ const DEFAULT_JSON_ACCEPT = "application/json, application/problem+json";
 // ---------------------------------------------------------------------------
 
 let _baseUrl: string | null = null;
-let _authTokenGetter: AuthTokenGetter | null = null;
+let csrfRequest: Promise<string> | null = null;
 
 /**
  * Set a base URL that is prepended to every relative request URL
@@ -27,21 +26,6 @@ let _authTokenGetter: AuthTokenGetter | null = null;
  */
 export function setBaseUrl(url: string | null): void {
   _baseUrl = url ? url.replace(/\/+$/, "") : null;
-}
-
-/**
- * Register a getter that supplies a bearer auth token.  Before every fetch
- * the getter is invoked; when it returns a non-null string, an
- * `Authorization: Bearer <token>` header is attached to the request.
- *
- * Useful for Expo bundles making token-gated API calls.
- * Pass `null` to clear the getter.
- *
- * NOTE: This function should never be used in web applications where session
- * token cookies are automatically associated with API calls by the browser.
- */
-export function setAuthTokenGetter(getter: AuthTokenGetter | null): void {
-  _authTokenGetter = getter;
 }
 
 function isRequest(input: RequestInfo | URL): input is Request {
@@ -349,18 +333,25 @@ export async function customFetch<T = unknown>(
     headers.set("accept", DEFAULT_JSON_ACCEPT);
   }
 
-  // Attach bearer token when an auth getter is configured and no
-  // Authorization header has been explicitly provided.
-  if (_authTokenGetter && !headers.has("authorization")) {
-    const token = await _authTokenGetter();
-    if (token) {
-      headers.set("authorization", `Bearer ${token}`);
+  // Authentication is cookie-only. Tokens are never read or stored by JS.
+  headers.delete("authorization");
+  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    if (!csrfRequest) {
+      csrfRequest = (async () => {
+        const csrfUrl = applyBaseUrl("/api/v1/auth/csrf");
+        const response = await fetch(csrfUrl, { credentials: "include", cache: "no-store" });
+        if (!response.ok) throw new ApiError(response, await response.json(), { method: "GET", url: resolveUrl(csrfUrl) });
+        const body = await response.json();
+        if (typeof body?.data?.csrfToken !== "string") throw new Error("Invalid CSRF response");
+        return body.data.csrfToken as string;
+      })().finally(() => { csrfRequest = null; });
     }
+    headers.set("x-csrf-token", await csrfRequest);
   }
 
   const requestInfo = { method, url: resolveUrl(input) };
 
-  const response = await fetch(input, { ...init, method, headers });
+  const response = await fetch(input, { ...init, method, headers, credentials: "include" });
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);

@@ -5,6 +5,64 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface RegisterInput {
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  name: string;
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * At most 72 UTF-8 bytes to avoid bcrypt truncation.
+     * @minLength 8
+     */
+  password: string;
+}
+
+export interface LoginInput {
+  /** @maxLength 254 */
+  email: string;
+  /** @minLength 8 */
+  password: string;
+}
+
+export interface SafeUser {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AuthUserResponseData = {
+  user: SafeUser;
+};
+
+export interface AuthUserResponse {
+  success: true;
+  statusCode: number;
+  message: string;
+  data: AuthUserResponseData;
+}
+
+export interface AuthSuccessResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+}
+
+export type CsrfResponseData = {
+  csrfToken: string;
+};
+
+export interface CsrfResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: CsrfResponseData;
+}
+
 export type ApiHealthResponseData = {
   status: 'ok';
 };
@@ -37,4 +95,14 @@ export interface ApiErrorResponse {
 export interface HealthStatus {
   status: string;
 }
+
+/**
+ * Authentication, validation, CSRF, or rate-limit error
+ */
+export type AuthErrorResponse = ApiErrorResponse;
+
+/**
+ * Obtain a fresh token from /api/v1/auth/csrf using credentials included.
+ */
+export type CsrfHeaderParameter = string;
 

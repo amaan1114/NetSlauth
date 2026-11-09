@@ -19,9 +19,9 @@ Security observability platform with monorepo, database, and backend foundations
 - Shared strict TS and ESLint settings belong in `packages/config`.
   **Why:** applications should share one source of compiler/lint defaults.
 - See `README.md` for the complete file list, architecture, and run commands.
-- Current scope includes the database and backend foundations with health routes.
-  Do not add authentication, feature routes, monitoring logic, or dashboard
-  features without a later request.
+- Current scope includes database/backend foundations and cookie-based user
+  authentication. Workspace authorization, agent authentication, ingestion,
+  monitoring logic, and dashboard features need separate requests.
 - The managed API workflow runs `apps/api` through Turbo; starter source remains
   preserved but is no longer the active backend.
   **Why:** editing the NetSleuth backend must affect the server used in development.
@@ -77,6 +77,10 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 - Apply this simplicity to development source, including the running starter
   server, not just compiled output. Development should run TypeScript source directly.
   **Why:** the user clarified that source development code is what they want simplified.
+- User authentication must use HTTP-only access/refresh cookies with separate
+  signing secrets, refresh rotation, credentialed requests, and CSRF protection.
+  Never use Authorization/Bearer authentication for users.
+  **Why:** the user's explicit cookie-only strategy overrides the original JWT brief.
 
 ## Gotchas
 

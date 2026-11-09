@@ -12,7 +12,7 @@
       "dependsOn": ["^build"],
       "cache": false,
       "persistent": true,
-      "passThroughEnv": ["PORT", "HOST", "DATABASE_URL", "NODE_ENV", "CORS_ORIGINS"]
+      "passThroughEnv": ["PORT", "HOST", "DATABASE_URL", "NODE_ENV", "CORS_ORIGINS", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "JWT_ACCESS_TTL_SECONDS", "JWT_REFRESH_TTL_SECONDS", "COOKIE_SECURE", "COOKIE_SAME_SITE", "COOKIE_DOMAIN"]
     },
     "lint": {
       "dependsOn": ["^lint"],
@@ -26,7 +26,7 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
       "env": ["CI", "NODE_ENV"],
-      "passThroughEnv": ["DATABASE_URL", "CORS_ORIGINS"]
+      "passThroughEnv": ["DATABASE_URL", "CORS_ORIGINS", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "COOKIE_SECURE", "COOKIE_SAME_SITE", "COOKIE_DOMAIN"]
     }
   }
 }

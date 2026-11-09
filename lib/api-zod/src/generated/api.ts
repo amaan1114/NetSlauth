@@ -9,6 +9,133 @@ import * as zod from 'zod';
 
 
 /**
+ * Uses an HTTP-only context cookie. Fetch with credentials included before every auth POST.
+ * @summary Issue a session-bound CSRF token
+ */
+export const GetCsrfTokenResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "csrfToken": zod.string()
+})
+})
+
+
+export const RegisterUserHeader = zod.object({
+  "X-CSRF-Token": zod.string().describe('Obtain a fresh token from /api/v1/auth/csrf using credentials included.')
+})
+
+export const registerUserBodyNameMin = 2;
+export const registerUserBodyNameMax = 100;
+
+export const registerUserBodyEmailMax = 254;
+
+export const registerUserBodyPasswordMin = 8;
+
+
+
+export const RegisterUserBody = zod.object({
+  "name": zod.string().min(registerUserBodyNameMin).max(registerUserBodyNameMax),
+  "email": zod.string().email().max(registerUserBodyEmailMax),
+  "password": zod.string().min(registerUserBodyPasswordMin).describe('At most 72 UTF-8 bytes to avoid bcrypt truncation.')
+})
+
+export const RegisterUserResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "user": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "email": zod.string().email(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+export const LoginUserHeader = zod.object({
+  "X-CSRF-Token": zod.string().describe('Obtain a fresh token from /api/v1/auth/csrf using credentials included.')
+})
+
+export const loginUserBodyEmailMax = 254;
+
+export const loginUserBodyPasswordMin = 8;
+
+
+
+export const LoginUserBody = zod.object({
+  "email": zod.string().email().max(loginUserBodyEmailMax),
+  "password": zod.string().min(loginUserBodyPasswordMin)
+})
+
+export const LoginUserResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "user": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "email": zod.string().email(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+export const RefreshSessionHeader = zod.object({
+  "X-CSRF-Token": zod.string().describe('Obtain a fresh token from /api/v1/auth/csrf using credentials included.')
+})
+
+export const RefreshSessionResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "user": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "email": zod.string().email(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+export const LogoutUserHeader = zod.object({
+  "X-CSRF-Token": zod.string().describe('Obtain a fresh token from /api/v1/auth/csrf using credentials included.')
+})
+
+export const LogoutUserResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string()
+})
+
+
+export const GetCurrentUserResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "user": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "email": zod.string().email(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+})
+})
+
+
+/**
  * @summary API liveness
  */
 export const GetApiHealthResponse = zod.object({

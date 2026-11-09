@@ -11,6 +11,102 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /v1/auth/csrf:
+    get:
+      operationId: getCsrfToken
+      summary: Issue a session-bound CSRF token
+      description: Uses an HTTP-only context cookie. Fetch with credentials included before every auth POST.
+      responses:
+        "200":
+          description: CSRF token, not an authentication JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CsrfResponse"
+  /v1/auth/register:
+    post:
+      operationId: registerUser
+      parameters:
+        - $ref: "#/components/parameters/CsrfHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Safe user information; access and refresh JWTs are set only as HTTP-only cookies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResponse"
+        "400": { $ref: "#/components/responses/AuthError" }
+        "403": { $ref: "#/components/responses/AuthError" }
+        "409": { $ref: "#/components/responses/AuthError" }
+        "429": { $ref: "#/components/responses/AuthError" }
+  /v1/auth/login:
+    post:
+      operationId: loginUser
+      parameters:
+        - $ref: "#/components/parameters/CsrfHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Safe user information; JWTs are set only as HTTP-only cookies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResponse"
+        "400": { $ref: "#/components/responses/AuthError" }
+        "401": { $ref: "#/components/responses/AuthError" }
+        "403": { $ref: "#/components/responses/AuthError" }
+        "429": { $ref: "#/components/responses/AuthError" }
+  /v1/auth/refresh:
+    post:
+      operationId: refreshSession
+      parameters:
+        - $ref: "#/components/parameters/CsrfHeader"
+      responses:
+        "200":
+          description: Access cookie renewed and refresh cookie rotated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResponse"
+        "401": { $ref: "#/components/responses/AuthError" }
+        "403": { $ref: "#/components/responses/AuthError" }
+  /v1/auth/logout:
+    post:
+      operationId: logoutUser
+      parameters:
+        - $ref: "#/components/parameters/CsrfHeader"
+      responses:
+        "200":
+          description: Session revoked and cookies cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSuccessResponse"
+        "403": { $ref: "#/components/responses/AuthError" }
+  /v1/auth/me:
+    get:
+      operationId: getCurrentUser
+      security:
+        - AccessCookie: []
+      responses:
+        "200":
+          description: Safe user fields fetched from PostgreSQL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserResponse"
+        "401": { $ref: "#/components/responses/AuthError" }
   /health:
     get:
       operationId: getApiHealth
@@ -55,7 +151,85 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 components:
+  securitySchemes:
+    AccessCookie:
+      type: apiKey
+      in: cookie
+      name: netsleuth_access
+      description: HTTP-only access JWT. Authorization headers are never used.
+  parameters:
+    CsrfHeader:
+      in: header
+      name: X-CSRF-Token
+      required: true
+      schema: { type: string }
+      description: Obtain a fresh token from /api/v1/auth/csrf using credentials included.
+  responses:
+    AuthError:
+      description: Authentication, validation, CSRF, or rate-limit error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorResponse"
   schemas:
+    RegisterInput:
+      type: object
+      additionalProperties: false
+      required: [name, email, password]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 254 }
+        password:
+          type: string
+          minLength: 8
+          description: At most 72 UTF-8 bytes to avoid bcrypt truncation.
+    LoginInput:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 8 }
+    SafeUser:
+      type: object
+      required: [id, name, email, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AuthUserResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer }
+        message: { type: string }
+        data:
+          type: object
+          required: [user]
+          properties:
+            user: { $ref: "#/components/schemas/SafeUser" }
+    AuthSuccessResponse:
+      type: object
+      required: [success, statusCode, message]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+    CsrfResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [csrfToken]
+          properties:
+            csrfToken: { type: string }
     ApiHealthResponse:
       type: object
       required: [success, statusCode, message, data]

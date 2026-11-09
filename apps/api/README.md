@@ -1,7 +1,8 @@
 # NetSleuth backend foundation
 
-Small Express 5/TypeScript backend. No authentication, feature controllers,
-ingestion, detections, or Socket.IO application events are implemented.
+Small Express 5/TypeScript backend with cookie-based user authentication.
+Workspace/agent authorization, ingestion, detections, and Socket.IO application
+events are not implemented.
 
 ## Structure
 
@@ -11,6 +12,15 @@ src/
   middleware/
     globalErrorHandler.ts
     requestLogger.ts
+    authMiddleware.ts
+    csrfProtection.ts
+  modules/auth/
+    auth.routes.ts
+    auth.controller.ts
+    auth.service.ts
+    auth.validation.ts
+    auth.tokens.ts
+    auth.cookies.ts
   modules/README.md
   services/database.ts
   utils/
@@ -19,7 +29,7 @@ src/
   app.ts
   server.ts
   index.ts
-tests/foundation.test.ts
+tests/{foundation,auth,auth-client}.test.ts
 .env.example
 ```
 
@@ -45,11 +55,27 @@ tests/foundation.test.ts
 
 ## Configuration
 
-`DATABASE_URL` is required. `PORT` defaults to 4000, `HOST` to `0.0.0.0`,
+`DATABASE_URL`, `JWT_ACCESS_SECRET`, and `JWT_REFRESH_SECRET` are required.
+The two signing secrets must be different, random values of at least 32 bytes
+(configuration enforces at least 32 characters). `PORT` defaults to 4000, `HOST` to `0.0.0.0`,
 `NODE_ENV` to `development`, and `CORS_ORIGINS` to `http://localhost:3000`.
 Multiple origins are comma-separated. Configure the actual frontend origin
-before cross-origin browser use. Credentials/cookies are not enabled by CORS.
-No wildcard origin is required.
+before cross-origin browser use. CORS credentials are enabled for the configured
+origins, without a wildcard. The Node server trusts one reverse-proxy hop; adjust
+`trust proxy` for your own deployment topology.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `JWT_ACCESS_TTL_SECONDS` | `900` | Access JWT lifetime (60–3600 seconds) |
+| `JWT_REFRESH_TTL_SECONDS` | `604800` | Absolute session lifetime (1 hour–30 days); must exceed access lifetime |
+| `COOKIE_SECURE` | true in production, false otherwise | HTTPS-only cookies; production cannot disable it |
+| `COOKIE_SAME_SITE` | `lax` | `lax`, `strict`, or `none`; `none` requires Secure |
+| `COOKIE_DOMAIN` | omitted | Host-only cookies by default; set only when sharing across subdomains |
+
+For a genuinely cross-site frontend/API deployment, use HTTPS,
+`COOKIE_SECURE=true`, `COOKIE_SAME_SITE=none`, and the explicit frontend origin
+in `CORS_ORIGINS`. Browsers can still block third-party cookies. Prefer same-site
+frontend/API hosting when possible.
 
 See `.env.example` for variable names; never commit real credentials.
 
@@ -118,3 +144,104 @@ HttpError, Zod failures, unexpected-error redaction, headers and route aliases.
 Database checks in unit tests are explicit test doubles, not real observations.
 The running server's readiness endpoint must be checked separately to verify
 the actual PostgreSQL connection.
+
+Authentication tests use real bcrypt, JWT verification, and PostgreSQL in a
+random temporary schema inside a rolled-back transaction. They do not create
+accounts in the application's public tables. They check registration,
+case-insensitive duplicate rejection, invalid input, password verification,
+cookie-only access, token expiry/type checks, refresh rotation/replay and
+concurrent rotation, CSRF, logout revocation, and deleted users.
+The frontend transport test verifies credentials and CSRF headers without
+making network requests.
+
+## Cookie authentication
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/auth/csrf` | Get a session-bound CSRF token |
+| POST | `/api/v1/auth/register` | Register and set access/refresh cookies |
+| POST | `/api/v1/auth/login` | Verify credentials and set cookies |
+| POST | `/api/v1/auth/refresh` | Renew access and rotate refresh cookie |
+| POST | `/api/v1/auth/logout` | Revoke this session and clear cookies |
+| GET | `/api/v1/auth/me` | Return safe user fields from PostgreSQL |
+
+JWTs are **never returned in JSON or read from Authorization headers**.
+`netsleuth_access` is an HTTP-only cookie at `/`; `netsleuth_refresh` is an
+HTTP-only cookie at `/api/v1/auth`. Both use the configured SameSite/Secure/domain
+options. Clearing cookies uses the same options and paths.
+
+Refresh sessions store SHA-256 hashes of the current refresh token, never the
+raw token. Atomic compare-and-update permits only one successful rotation.
+Rotating cannot extend the original session expiration. Revoking a session
+invalidates access immediately because middleware checks the session in the
+database. Registration creates the user and session in one transaction.
+
+**Every auth POST requires `X-CSRF-Token`.** Fetch a fresh token from `/csrf`
+before each POST, with cookies included in both requests. The signed CSRF token
+is bound to an HTTP-only context cookie and the current refresh cookie, so it
+changes after login/registration/rotation. Requests from an unapproved browser
+Origin are also rejected. Future cookie-authenticated write routes must mount
+`csrfProtection` too; `authMiddleware` alone does not add CSRF protection.
+
+`lib/api-client-react/src/custom-fetch.ts` always uses `credentials: "include"`,
+automatically obtains the CSRF token for writes, and does not send Authorization.
+No browser local/session storage is used for tokens. Automatic retries/refresh
+and frontend sign-in screens are not part of this backend module.
+
+### Example browser request
+
+```ts
+const csrfResponse = await fetch("/api/v1/auth/csrf", {
+  credentials: "include",
+});
+const { data } = await csrfResponse.json();
+const response = await fetch("/api/v1/auth/register", {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+    "X-CSRF-Token": data.csrfToken,
+  },
+  body: JSON.stringify({
+    name: "Example User",
+    email: "example@example.invalid",
+    password: "replace-with-a-strong-password",
+  }),
+});
+const result = await response.json();
+```
+
+Example registration response (HTTP 201):
+
+```json
+{
+  "success": true,
+  "statusCode": 201,
+  "message": "Registration successful",
+  "data": {
+    "user": {
+      "id": "09f6cda0-21f2-4b41-9ee4-8f9e253a7db0",
+      "name": "Example User",
+      "email": "example@example.invalid",
+      "createdAt": "2026-11-09T10:00:00.000Z",
+      "updatedAt": "2026-11-09T10:00:00.000Z"
+    }
+  }
+}
+```
+
+Missing access cookies return HTTP 401 with the existing error envelope:
+
+```json
+{
+  "success": false,
+  "statusCode": 401,
+  "message": "Access cookie is required"
+}
+```
+
+Login/registration share a process-local limit of 30 attempts per IP per
+15 minutes. A shared rate-limit store is needed before horizontal scaling.
+Expired/revoked sessions currently remain for inspection; a retention cleanup
+job can be added separately. No password recovery or email verification is
+implemented.

@@ -186,7 +186,7 @@ prepared; no UI components or dashboard features have been generated.
 
 - **Ingestion pressure:** define batch limits, bounded queues, timeouts, retries,
   idempotency, and retention before handling high-volume security events.
-- **Identity and trust:** authenticate agents and users; authorize Socket.IO
+- **Identity and trust:** user cookie authentication is implemented; authenticate agents and authorize Socket.IO
   subscriptions, isolate tenants, validate events, and protect secrets.
 - **Contract evolution:** version event contracts so independently deployed
   agents can tolerate control-plane upgrades.
@@ -200,6 +200,6 @@ prepared; no UI components or dashboard features have been generated.
 - **Portability:** keep capture platform assumptions explicit and infrastructure
   configuration separate from application code.
 
-Authentication, ingestion, detections, PostgreSQL log
+Agent authentication, workspace authorization, ingestion, detections, PostgreSQL log
 collection, packet capture, dashboards, Dockerfiles, and Compose are deferred.
 No simulated events are presented as real observations.
