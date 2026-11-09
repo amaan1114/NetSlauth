@@ -32,6 +32,8 @@ test("generated migration, database constraints, and real scoped query helpers",
       // No public fallback: a missing test table must fail, not hit application data.
       await client.query(`SET LOCAL search_path TO ${quotedSchema}, pg_catalog`);
       await client.query(isolatedMigration);
+      // The fixture SQL refuses to run without this transaction-local harness marker.
+      await client.query("SELECT set_config('netsleuth.test_schema', $1, true)", [schemaName]);
       await client.query(constraints);
       // Drizzle must use THIS client, not the pool (which could escape the transaction).
       await checkQueryScopes(drizzle(client, { schema }));

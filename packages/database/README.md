@@ -188,8 +188,16 @@ the schema is gone, releases the client, and closes the pool, on success or
 failure. A broken rollback connection is destroyed to force server-side rollback.
 Connection and statement timeouts bound database waits.
 
-Checks cover membership/email uniqueness, per-agent event deduplication, port
-ranges, foreign keys, project-wide alerts, cross-project alert rejection,
+The SQL fixtures also check the harness's transaction-local schema marker and
+isolated search path before writing any rows, refusing accidental standalone use.
+
+Checks cover membership/email uniqueness, per-agent event deduplication, invalid
+IPv4/IPv6 addresses in either IP column, empty and space-only event IDs,
+fingerprints and password hashes, every non-object JSON type for metadata/evidence,
+all four enum types, and both port columns at -1, 0, 65535, 65536 and NULL.
+Valid cases include IPv4/IPv6 in either column, single-character required strings,
+empty/nested JSON objects, every declared enum value, and equal alert timestamps.
+Checks also cover foreign keys, project-wide alerts, cross-project alert rejection,
 project-scoped fingerprints, timestamp ordering, workspace-scoped event reads,
 and cascade isolation. The runner also imports the actual `src/queries.ts`
 helpers for agents, events, and alerts and executes them using the same
