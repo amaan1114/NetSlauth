@@ -5,6 +5,75 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type AlertStatusInputStatus = typeof AlertStatusInputStatus[keyof typeof AlertStatusInputStatus];
+
+
+export const AlertStatusInputStatus = {
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  RESOLVED: 'RESOLVED',
+} as const;
+
+export interface AlertStatusInput {
+  status: AlertStatusInputStatus;
+}
+
+export type AlertDetailResponseDataAgent = {
+  id: string;
+  name: string;
+} | null;
+
+export type SecurityAlertSeverity = typeof SecurityAlertSeverity[keyof typeof SecurityAlertSeverity];
+
+
+export const SecurityAlertSeverity = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+} as const;
+
+export type SecurityAlertStatus = typeof SecurityAlertStatus[keyof typeof SecurityAlertStatus];
+
+
+export const SecurityAlertStatus = {
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  RESOLVED: 'RESOLVED',
+} as const;
+
+export type SecurityAlertEvidence = { [key: string]: unknown };
+
+export interface SecurityAlert {
+  id: string;
+  projectId: string;
+  /** @nullable */
+  agentId: string | null;
+  title: string;
+  description: string;
+  severity: SecurityAlertSeverity;
+  status: SecurityAlertStatus;
+  ruleId: string;
+  fingerprint: string;
+  evidence: SecurityAlertEvidence;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AlertDetailResponseData = {
+  alert: SecurityAlert;
+  agent: AlertDetailResponseDataAgent;
+};
+
+export interface AlertDetailResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: AlertDetailResponseData;
+}
+
 export interface ExplorerEvent {
   id: string;
   projectId: string;
@@ -19,6 +88,24 @@ export interface ExplorerEvent {
   destinationPort: number | null;
   protocol: string;
   occurredAt: string;
+}
+
+export interface AlertPagination {
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export type AlertRelatedEventsResponseData = {
+  events: ExplorerEvent[];
+  pagination: AlertPagination;
+};
+
+export interface AlertRelatedEventsResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: AlertRelatedEventsResponseData;
 }
 
 export type ExplorerEventDetailMetadata = { [key: string]: unknown };
@@ -228,51 +315,6 @@ export interface DatabasePolicyResponse {
   statusCode: 200;
   message: string;
   data: DatabasePolicyResponseData;
-}
-
-export type SecurityAlertSeverity = typeof SecurityAlertSeverity[keyof typeof SecurityAlertSeverity];
-
-
-export const SecurityAlertSeverity = {
-  LOW: 'LOW',
-  MEDIUM: 'MEDIUM',
-  HIGH: 'HIGH',
-  CRITICAL: 'CRITICAL',
-} as const;
-
-export type SecurityAlertStatus = typeof SecurityAlertStatus[keyof typeof SecurityAlertStatus];
-
-
-export const SecurityAlertStatus = {
-  OPEN: 'OPEN',
-  ACKNOWLEDGED: 'ACKNOWLEDGED',
-  RESOLVED: 'RESOLVED',
-} as const;
-
-export type SecurityAlertEvidence = { [key: string]: unknown };
-
-export interface SecurityAlert {
-  id: string;
-  projectId: string;
-  /** @nullable */
-  agentId: string | null;
-  title: string;
-  description: string;
-  severity: SecurityAlertSeverity;
-  status: SecurityAlertStatus;
-  ruleId: string;
-  fingerprint: string;
-  evidence: SecurityAlertEvidence;
-  firstSeenAt: string;
-  lastSeenAt: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AlertPagination {
-  page: number;
-  limit: number;
-  hasMore: boolean;
 }
 
 export type AlertListResponseData = {
@@ -669,6 +711,23 @@ page?: number;
 limit?: number;
 severity?: GetAlertsSeverity;
 status?: GetAlertsStatus;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+ruleId?: string;
+/**
+ * Exact IPv4 or IPv6 evidence address
+ */
+sourceIp?: string;
+/**
+ * Inclusive lastSeenAt timestamp
+ */
+start?: string;
+/**
+ * Exclusive lastSeenAt timestamp after start
+ */
+end?: string;
 };
 
 export type GetAlertsSeverity = typeof GetAlertsSeverity[keyof typeof GetAlertsSeverity];
@@ -689,4 +748,17 @@ export const GetAlertsStatus = {
   ACKNOWLEDGED: 'ACKNOWLEDGED',
   RESOLVED: 'RESOLVED',
 } as const;
+
+export type GetAlertRelatedEventsParams = {
+/**
+ * @minimum 1
+ * @maximum 100000
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
 

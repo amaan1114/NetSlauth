@@ -29,7 +29,10 @@ import type {
   AgentListResponse,
   AgentRegistrationResponse,
   AgentResponse,
+  AlertDetailResponse,
   AlertListResponse,
+  AlertRelatedEventsResponse,
+  AlertStatusInput,
   ApiErrorResponse,
   ApiHealthResponse,
   ApiReadinessResponse,
@@ -46,6 +49,7 @@ import type {
   EventIngestionResponse,
   ExplorerEventDetailResponse,
   ExplorerEventListResponse,
+  GetAlertRelatedEventsParams,
   GetAlertsParams,
   GetDashboardActivityParams,
   GetProjectEventsParams,
@@ -632,6 +636,330 @@ export function useGetAlerts<TData = Awaited<ReturnType<typeof getAlerts>>, TErr
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetAlertsQueryOptions(projectId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetProjectAlertUrl = (projectId: string,
+    alertId: string,) => {
+
+
+
+
+  return `/api/v1/projects/${projectId}/alerts/${alertId}`
+}
+
+/**
+ * @summary Scoped alert evidence and associated agent without credentials
+ */
+export const getProjectAlert = async (projectId: string,
+    alertId: string, options?: Parameters<typeof customFetch>[1]): Promise<AlertDetailResponse> => {
+
+  return customFetch<AlertDetailResponse>(getGetProjectAlertUrl(projectId,alertId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectAlertQueryKey = (projectId: string,
+    alertId: string,) => {
+    return [
+    `/api/v1/projects/${projectId}/alerts/${alertId}`
+    ] as const;
+    }
+
+
+export const getGetProjectAlertQueryOptions = <TData = Awaited<ReturnType<typeof getProjectAlert>>, TError = ErrorType<AuthErrorResponse>>(projectId: string,
+    alertId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAlert>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectAlertQueryKey(projectId,alertId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectAlert>>> = ({ signal }) => getProjectAlert(projectId,alertId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined && alertId !== null && alertId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectAlert>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectAlertQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectAlert>>>
+export type GetProjectAlertQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetProjectAlert<TData = Awaited<ReturnType<typeof getProjectAlert>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    alertId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAlert>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectAlert>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectAlert>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectAlert<TData = Awaited<ReturnType<typeof getProjectAlert>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    alertId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAlert>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectAlert>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectAlert>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectAlert<TData = Awaited<ReturnType<typeof getProjectAlert>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    alertId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAlert>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Scoped alert evidence and associated agent without credentials
+ */
+
+export function useGetProjectAlert<TData = Awaited<ReturnType<typeof getProjectAlert>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    alertId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectAlert>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProjectAlertQueryOptions(projectId,alertId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateProjectAlertStatusUrl = (projectId: string,
+    alertId: string,) => {
+
+
+
+
+  return `/api/v1/projects/${projectId}/alerts/${alertId}/status`
+}
+
+/**
+ * @summary Explicit member action to acknowledge, resolve or reopen an alert
+ */
+export const updateProjectAlertStatus = async (projectId: string,
+    alertId: string,
+    alertStatusInput: AlertStatusInput, options?: Parameters<typeof customFetch>[1]): Promise<AlertDetailResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AlertDetailResponse>(getUpdateProjectAlertStatusUrl(projectId,alertId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(alertStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateProjectAlertStatusMutationKey = () => ['updateProjectAlertStatus'] as const;
+
+export const getUpdateProjectAlertStatusMutationOptions = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlertStatus>>, TError,UpdateProjectAlertStatusMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlertStatus>>, TError,UpdateProjectAlertStatusMutationVariables, TContext> => {
+
+const mutationKey = getUpdateProjectAlertStatusMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateProjectAlertStatus>>, UpdateProjectAlertStatusMutationVariables> = (props) => {
+          const {projectId,alertId,data} = props ?? {};
+
+          return  updateProjectAlertStatus(projectId,alertId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateProjectAlertStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateProjectAlertStatus>>>
+    export type UpdateProjectAlertStatusMutationBody = BodyType<AlertStatusInput>
+    export type UpdateProjectAlertStatusMutationError = ErrorType<AuthErrorResponse>
+    export type UpdateProjectAlertStatusMutationVariables = {projectId: string;alertId: string;data: BodyType<AlertStatusInput>}
+
+    /**
+ * @summary Explicit member action to acknowledge, resolve or reopen an alert
+ */
+export const useUpdateProjectAlertStatus = <TError = ErrorType<AuthErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateProjectAlertStatus>>, TError,UpdateProjectAlertStatusMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateProjectAlertStatus>>,
+        TError,
+        UpdateProjectAlertStatusMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateProjectAlertStatusMutationOptions(options), queryClient);
+    }
+
+export const getGetAlertRelatedEventsUrl = (projectId: string,
+    alertId: string,
+    params?: GetAlertRelatedEventsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/projects/${projectId}/alerts/${alertId}/events?${stringifiedParams}` : `/api/v1/projects/${projectId}/alerts/${alertId}/events`
+}
+
+/**
+ * @summary Paginated same-project events explicitly referenced by stored alert evidence
+ */
+export const getAlertRelatedEvents = async (projectId: string,
+    alertId: string,
+    params?: GetAlertRelatedEventsParams, options?: Parameters<typeof customFetch>[1]): Promise<AlertRelatedEventsResponse> => {
+
+  return customFetch<AlertRelatedEventsResponse>(getGetAlertRelatedEventsUrl(projectId,alertId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAlertRelatedEventsQueryKey = (projectId: string,
+    alertId: string,
+    params?: GetAlertRelatedEventsParams,) => {
+    return [
+    `/api/v1/projects/${projectId}/alerts/${alertId}/events`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAlertRelatedEventsQueryOptions = <TData = Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError = ErrorType<AuthErrorResponse>>(projectId: string,
+    alertId: string,
+    params?: GetAlertRelatedEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAlertRelatedEventsQueryKey(projectId,alertId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAlertRelatedEvents>>> = ({ signal }) => getAlertRelatedEvents(projectId,alertId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined && alertId !== null && alertId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAlertRelatedEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getAlertRelatedEvents>>>
+export type GetAlertRelatedEventsQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetAlertRelatedEvents<TData = Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    alertId: string,
+    params: undefined |  GetAlertRelatedEventsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAlertRelatedEvents>>,
+          TError,
+          Awaited<ReturnType<typeof getAlertRelatedEvents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAlertRelatedEvents<TData = Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    alertId: string,
+    params?: GetAlertRelatedEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAlertRelatedEvents>>,
+          TError,
+          Awaited<ReturnType<typeof getAlertRelatedEvents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAlertRelatedEvents<TData = Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    alertId: string,
+    params?: GetAlertRelatedEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Paginated same-project events explicitly referenced by stored alert evidence
+ */
+
+export function useGetAlertRelatedEvents<TData = Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    alertId: string,
+    params?: GetAlertRelatedEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAlertRelatedEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAlertRelatedEventsQueryOptions(projectId,alertId,params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

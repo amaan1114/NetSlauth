@@ -103,6 +103,10 @@ paths:
         - in: query
           name: status
           schema: { type: string, enum: [OPEN, ACKNOWLEDGED, RESOLVED] }
+        - { in: query, name: ruleId, schema: { type: string, minLength: 1, maxLength: 100 } }
+        - { in: query, name: sourceIp, description: Exact IPv4 or IPv6 evidence address, schema: { type: string } }
+        - { in: query, name: start, description: Inclusive lastSeenAt timestamp, schema: { type: string, format: date-time } }
+        - { in: query, name: end, description: Exclusive lastSeenAt timestamp after start, schema: { type: string, format: date-time } }
       responses:
         "200":
           description: Alerts ordered by lastSeenAt descending with stable ID tie-breaking
@@ -112,6 +116,59 @@ paths:
         "400": { $ref: "#/components/responses/AuthError" }
         "401": { $ref: "#/components/responses/AuthError" }
         "404": { $ref: "#/components/responses/AuthError" }
+  /v1/projects/{projectId}/alerts/{alertId}:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+      - { in: path, name: alertId, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getProjectAlert
+      security: [{ AccessCookie: [] }]
+      summary: Scoped alert evidence and associated agent without credentials
+      responses:
+        "200":
+          description: Stored evidence with common credential fields redacted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlertDetailResponse" }
+        default: { $ref: "#/components/responses/AuthError" }
+  /v1/projects/{projectId}/alerts/{alertId}/status:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+      - { in: path, name: alertId, required: true, schema: { type: string, format: uuid } }
+    patch:
+      operationId: updateProjectAlertStatus
+      security: [{ AccessCookie: [] }]
+      summary: Explicit member action to acknowledge, resolve or reopen an alert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AlertStatusInput" }
+      responses:
+        "200":
+          description: Updated alert; detection evidence and observation timestamps unchanged
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlertDetailResponse" }
+        default: { $ref: "#/components/responses/AuthError" }
+  /v1/projects/{projectId}/alerts/{alertId}/events:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+      - { in: path, name: alertId, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getAlertRelatedEvents
+      security: [{ AccessCookie: [] }]
+      summary: Paginated same-project events explicitly referenced by stored alert evidence
+      parameters:
+        - { in: query, name: page, schema: { type: integer, minimum: 1, maximum: 100000, default: 1 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200":
+          description: Only matching stored event references; not inferred history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AlertRelatedEventsResponse" }
+        default: { $ref: "#/components/responses/AuthError" }
   /v1/projects/{projectId}/database-policy:
     parameters:
       - $ref: "#/components/parameters/ProjectId"
@@ -493,6 +550,47 @@ components:
           schema:
             $ref: "#/components/schemas/ApiErrorResponse"
   schemas:
+    AlertStatusInput:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status: { type: string, enum: [OPEN, ACKNOWLEDGED, RESOLVED] }
+    AlertDetailResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [alert, agent]
+          properties:
+            alert: { $ref: "#/components/schemas/SecurityAlert" }
+            agent:
+              oneOf:
+                - type: object
+                  required: [id, name]
+                  properties:
+                    id: { type: string, format: uuid }
+                    name: { type: string }
+                - type: "null"
+    AlertRelatedEventsResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [events, pagination]
+          properties:
+            events:
+              type: array
+              items: { $ref: "#/components/schemas/ExplorerEvent" }
+            pagination: { $ref: "#/components/schemas/AlertPagination" }
     ExplorerEvent:
       type: object
       required: [id, projectId, agentId, agentName, eventType, sourceIp, sourcePort, destinationIp, destinationPort, protocol, occurredAt]

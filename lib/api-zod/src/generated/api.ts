@@ -188,13 +188,19 @@ export const getAlertsQueryPageMax = 100000;
 export const getAlertsQueryLimitDefault = 20;
 export const getAlertsQueryLimitMax = 100;
 
+export const getAlertsQueryRuleIdMax = 100;
+
 
 
 export const GetAlertsQueryParams = zod.object({
   "page": zod.number().int().min(1).max(getAlertsQueryPageMax).default(getAlertsQueryPageDefault),
   "limit": zod.number().int().min(1).max(getAlertsQueryLimitMax).default(getAlertsQueryLimitDefault),
   "severity": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
-  "status": zod.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED']).optional()
+  "status": zod.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED']).optional(),
+  "ruleId": zod.string().min(1).max(getAlertsQueryRuleIdMax).optional(),
+  "sourceIp": zod.string().optional().describe('Exact IPv4 or IPv6 evidence address'),
+  "start": zod.date().optional().describe('Inclusive lastSeenAt timestamp'),
+  "end": zod.date().optional().describe('Exclusive lastSeenAt timestamp after start')
 })
 
 export const GetAlertsResponse = zod.object({
@@ -217,6 +223,127 @@ export const GetAlertsResponse = zod.object({
   "lastSeenAt": zod.date(),
   "createdAt": zod.date(),
   "updatedAt": zod.date()
+})),
+  "pagination": zod.object({
+  "page": zod.number().int(),
+  "limit": zod.number().int(),
+  "hasMore": zod.boolean()
+})
+})
+})
+
+
+/**
+ * @summary Scoped alert evidence and associated agent without credentials
+ */
+export const GetProjectAlertParams = zod.object({
+  "projectId": zod.coerce.string().uuid(),
+  "alertId": zod.coerce.string().uuid()
+})
+
+export const GetProjectAlertResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "alert": zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "agentId": zod.string().uuid().nullable(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "severity": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  "status": zod.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED']),
+  "ruleId": zod.string(),
+  "fingerprint": zod.string(),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "firstSeenAt": zod.coerce.date(),
+  "lastSeenAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "agent": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}),zod.null()])
+})
+})
+
+
+/**
+ * @summary Explicit member action to acknowledge, resolve or reopen an alert
+ */
+export const UpdateProjectAlertStatusParams = zod.object({
+  "projectId": zod.coerce.string().uuid(),
+  "alertId": zod.coerce.string().uuid()
+})
+
+export const UpdateProjectAlertStatusBody = zod.object({
+  "status": zod.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED'])
+})
+
+export const UpdateProjectAlertStatusResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "alert": zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "agentId": zod.string().uuid().nullable(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "severity": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  "status": zod.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED']),
+  "ruleId": zod.string(),
+  "fingerprint": zod.string(),
+  "evidence": zod.record(zod.string(), zod.unknown()),
+  "firstSeenAt": zod.coerce.date(),
+  "lastSeenAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}),
+  "agent": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}),zod.null()])
+})
+})
+
+
+/**
+ * @summary Paginated same-project events explicitly referenced by stored alert evidence
+ */
+export const getAlertRelatedEventsQueryPageDefault = 1;
+export const getAlertRelatedEventsQueryPageMax = 100000;
+
+export const getAlertRelatedEventsQueryLimitDefault = 20;
+export const getAlertRelatedEventsQueryLimitMax = 100;
+
+
+
+export const GetAlertRelatedEventsQueryParams = zod.object({
+  "page": zod.number().int().min(1).max(getAlertRelatedEventsQueryPageMax).default(getAlertRelatedEventsQueryPageDefault),
+  "limit": zod.number().int().min(1).max(getAlertRelatedEventsQueryLimitMax).default(getAlertRelatedEventsQueryLimitDefault)
+})
+
+export const GetAlertRelatedEventsResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "events": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "agentId": zod.string().uuid(),
+  "agentName": zod.string(),
+  "eventType": zod.string(),
+  "sourceIp": zod.string(),
+  "sourcePort": zod.number().int().nullable(),
+  "destinationIp": zod.string(),
+  "destinationPort": zod.number().int().nullable(),
+  "protocol": zod.string(),
+  "occurredAt": zod.date()
 })),
   "pagination": zod.object({
   "page": zod.number().int(),

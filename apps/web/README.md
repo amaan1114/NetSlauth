@@ -61,7 +61,9 @@ credentials and setup instructions, details, and confirmed revocation using the
 existing backend APIs. See [agent management](../../docs/agent-management.md).
 The Network Events Explorer adds project-scoped paginated events, combined
 server-side filters, and metadata details. See [event exploration](../../docs/events-explorer.md).
-Alert investigation and editable settings are not included. Workspace and
+Alert investigation includes scoped evidence, related events, and confirmed
+acknowledge/resolve/reopen actions. See [investigation](../../docs/alert-investigation.md).
+Editable settings are not included. Workspace and
 project creation still use the existing API. No backend changes or new runtime
 dependencies were needed for the original foundation; the overview adds two
 read-only aggregate endpoints and reuses the workspace's Recharts library.

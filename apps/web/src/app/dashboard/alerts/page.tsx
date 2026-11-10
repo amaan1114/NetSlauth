@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { PageHeading } from "@/components/dashboard/page-heading";
-import { ScopeContent } from "@/components/dashboard/scope-content";
+import { Suspense } from "react";
+import { AlertsContent } from "@/components/dashboard/alerts-content";
 
 export const metadata: Metadata = { title: "Security alerts" };
 
 export default function AlertsPage() {
-  return <main className="page-wrap">
-    <PageHeading eyebrow="Detection" title="Security alerts" description="A project-scoped home for security signals. No sample alerts or investigation workflows are shown here." />
-    <ScopeContent noun="alerts" />
+  return <main className="page-wrap alerts-page">
+    <Suspense fallback={<div className="alerts-page-loading" aria-label="Loading alerts" aria-busy="true"><span className="skeleton" /><span className="skeleton" /></div>}>
+      <AlertsContent />
+    </Suspense>
   </main>;
 }

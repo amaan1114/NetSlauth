@@ -36,12 +36,14 @@ Security observability platform with monorepo, database, and backend foundations
   project-scoped overview counts/activity/recent alerts/agent health, and
   agent listing, registration with one-time setup credentials, details, and
   confirmed revocation, plus a project-scoped Network Events Explorer with
-  server-side filters/pagination and on-demand event evidence.
+  server-side filters/pagination and on-demand event evidence. Security alerts
+  support filtered lists, stored-evidence investigation, scoped related events,
+  and explicit member acknowledge/resolve/reopen actions.
   Member-management endpoints, additional detection rules, packet capture,
   authentication-log collection,
-  and alert investigation need separate requests.
+  need separate requests.
   **Why:** overview, agent management, and event exploration are requested
-  product surfaces; investigation remains separate work. All data must come from
+  product surfaces, along with alert investigation. All data must come from
   persisted, authorized project records.
 - The managed API workflow runs `apps/api` through Turbo; starter source remains
   preserved but is no longer the active backend.

@@ -21,4 +21,21 @@ page?: number;
 limit?: number;
 severity?: GetAlertsSeverity;
 status?: GetAlertsStatus;
+/**
+ * @minLength 1
+ * @maxLength 100
+ */
+ruleId?: string;
+/**
+ * Exact IPv4 or IPv6 evidence address
+ */
+sourceIp?: string;
+/**
+ * Inclusive lastSeenAt timestamp
+ */
+start?: Date;
+/**
+ * Exclusive lastSeenAt timestamp after start
+ */
+end?: Date;
 };

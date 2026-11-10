@@ -8,7 +8,9 @@ navigation, workspace/project selection, and a persisted-data overview with
 project counts, activity, alerts and agent health. Agent management includes
 registration with one-time setup credentials, details, and confirmed revocation.
 The Network Events Explorer adds server-side filtering/pagination and scoped
-event details. Alert investigation remains deferred.
+event details. Security alert investigation adds stored evidence, related events,
+and explicit acknowledge/resolve/reopen actions.
+See [alert investigation](docs/alert-investigation.md) for lifecycle boundaries.
 See [event exploration](docs/events-explorer.md) for filters and API boundaries.
 See [agent management](docs/agent-management.md) for its API and setup boundaries.
 See [the database package](packages/database/README.md) for the complete schema,
