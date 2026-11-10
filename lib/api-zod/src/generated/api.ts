@@ -9,6 +9,91 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Authorized paginated events ordered by occurrence time and ID descending
+ */
+export const getProjectEventsQueryLimitDefault = 25;
+export const getProjectEventsQueryLimitMax = 100;
+
+export const getProjectEventsQueryOffsetDefault = 0;
+export const getProjectEventsQueryOffsetMin = 0;
+export const getProjectEventsQueryOffsetMax = 1000000;
+
+
+
+export const GetProjectEventsQueryParams = zod.object({
+  "limit": zod.number().int().min(1).max(getProjectEventsQueryLimitMax).default(getProjectEventsQueryLimitDefault),
+  "offset": zod.number().int().min(getProjectEventsQueryOffsetMin).max(getProjectEventsQueryOffsetMax).default(getProjectEventsQueryOffsetDefault),
+  "eventType": zod.enum(['NETWORK_CONNECTION_ATTEMPT', 'NETWORK_CONNECTION_ESTABLISHED', 'AUTHENTICATION_FAILURE', 'AUTHENTICATION_SUCCESS', 'SERVICE_DISCOVERED', 'AGENT_HEARTBEAT']).optional(),
+  "protocol": zod.enum(['TCP', 'UDP', 'OTHER']).optional(),
+  "sourceIp": zod.string().optional().describe('Exact IPv4 or IPv6 address'),
+  "destinationIp": zod.string().optional().describe('Exact IPv4 or IPv6 address'),
+  "agentId": zod.string().uuid().optional(),
+  "start": zod.date().optional().describe('Inclusive occurrence timestamp'),
+  "end": zod.date().optional().describe('Exclusive occurrence timestamp after start')
+})
+
+export const GetProjectEventsResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "events": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "agentId": zod.string().uuid(),
+  "agentName": zod.string(),
+  "eventType": zod.string(),
+  "sourceIp": zod.string(),
+  "sourcePort": zod.number().int().nullable(),
+  "destinationIp": zod.string(),
+  "destinationPort": zod.number().int().nullable(),
+  "protocol": zod.string(),
+  "occurredAt": zod.date()
+})),
+  "pagination": zod.object({
+  "limit": zod.number().int(),
+  "offset": zod.number().int(),
+  "hasMore": zod.boolean()
+})
+})
+})
+
+
+/**
+ * @summary Authorized event details with credential-like metadata redacted
+ */
+export const GetProjectEventParams = zod.object({
+  "projectId": zod.coerce.string().uuid(),
+  "eventRecordId": zod.coerce.string().uuid()
+})
+
+export const GetProjectEventResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.literal(200),
+  "message": zod.string(),
+  "data": zod.object({
+  "event": zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "agentId": zod.string().uuid(),
+  "agentName": zod.string(),
+  "eventType": zod.string(),
+  "sourceIp": zod.string(),
+  "sourcePort": zod.number().int().nullable(),
+  "destinationIp": zod.string(),
+  "destinationPort": zod.number().int().nullable(),
+  "protocol": zod.string(),
+  "occurredAt": zod.coerce.date()
+}).and(zod.object({
+  "eventId": zod.string(),
+  "receivedAt": zod.coerce.date(),
+  "metadata": zod.record(zod.string(), zod.unknown())
+}))
+})
+})
+
+
+/**
  * All-time counts. Critical and severity counts include all statuses. Agent status is stored status, not inferred liveness. Event total includes all persisted event types.
  * @summary Authorized project counts, latest 8 alerts and first 10 agents
  */

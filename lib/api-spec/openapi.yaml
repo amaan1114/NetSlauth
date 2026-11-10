@@ -11,6 +11,45 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /v1/projects/{projectId}/events:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      operationId: getProjectEvents
+      security: [{ AccessCookie: [] }]
+      summary: Authorized paginated events ordered by occurrence time and ID descending
+      parameters:
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+        - { in: query, name: offset, schema: { type: integer, minimum: 0, maximum: 1000000, default: 0 } }
+        - { in: query, name: eventType, schema: { type: string, enum: [NETWORK_CONNECTION_ATTEMPT, NETWORK_CONNECTION_ESTABLISHED, AUTHENTICATION_FAILURE, AUTHENTICATION_SUCCESS, SERVICE_DISCOVERED, AGENT_HEARTBEAT] } }
+        - { in: query, name: protocol, schema: { type: string, enum: [TCP, UDP, OTHER] } }
+        - { in: query, name: sourceIp, description: Exact IPv4 or IPv6 address, schema: { type: string } }
+        - { in: query, name: destinationIp, description: Exact IPv4 or IPv6 address, schema: { type: string } }
+        - { in: query, name: agentId, schema: { type: string, format: uuid } }
+        - { in: query, name: start, description: Inclusive occurrence timestamp, schema: { type: string, format: date-time } }
+        - { in: query, name: end, description: Exclusive occurrence timestamp after start, schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: Current page only; hasMore uses one bounded lookahead row
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExplorerEventListResponse" }
+        default: { $ref: "#/components/responses/AuthError" }
+  /v1/projects/{projectId}/events/{eventRecordId}:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+      - { in: path, name: eventRecordId, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: getProjectEvent
+      security: [{ AccessCookie: [] }]
+      summary: Authorized event details with credential-like metadata redacted
+      responses:
+        "200":
+          description: Stored event without agent credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExplorerEventDetailResponse" }
+        default: { $ref: "#/components/responses/AuthError" }
   /v1/projects/{projectId}/dashboard/summary:
     parameters:
       - $ref: "#/components/parameters/ProjectId"
@@ -454,6 +493,63 @@ components:
           schema:
             $ref: "#/components/schemas/ApiErrorResponse"
   schemas:
+    ExplorerEvent:
+      type: object
+      required: [id, projectId, agentId, agentName, eventType, sourceIp, sourcePort, destinationIp, destinationPort, protocol, occurredAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        agentId: { type: string, format: uuid }
+        agentName: { type: string }
+        eventType: { type: string }
+        sourceIp: { type: string }
+        sourcePort: { type: [integer, "null"] }
+        destinationIp: { type: string }
+        destinationPort: { type: [integer, "null"] }
+        protocol: { type: string }
+        occurredAt: { type: string, format: date-time }
+    ExplorerEventDetail:
+      allOf:
+        - $ref: "#/components/schemas/ExplorerEvent"
+        - type: object
+          required: [eventId, receivedAt, metadata]
+          properties:
+            eventId: { type: string }
+            receivedAt: { type: string, format: date-time }
+            metadata: { type: object, additionalProperties: true }
+    ExplorerEventListResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [events, pagination]
+          properties:
+            events:
+              type: array
+              items: { $ref: "#/components/schemas/ExplorerEvent" }
+            pagination:
+              type: object
+              required: [limit, offset, hasMore]
+              properties:
+                limit: { type: integer }
+                offset: { type: integer }
+                hasMore: { type: boolean }
+    ExplorerEventDetailResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer, const: 200 }
+        message: { type: string }
+        data:
+          type: object
+          required: [event]
+          properties:
+            event: { $ref: "#/components/schemas/ExplorerEventDetail" }
     DashboardMetrics:
       type: object
       required: [totalAgents, onlineAgents, offlineAgents, inactiveAgents, totalNetworkEvents, openAlerts, criticalAlerts]

@@ -44,8 +44,11 @@ import type {
   DatabasePolicyResponse,
   EventIngestionInput,
   EventIngestionResponse,
+  ExplorerEventDetailResponse,
+  ExplorerEventListResponse,
   GetAlertsParams,
   GetDashboardActivityParams,
+  GetProjectEventsParams,
   HealthStatus,
   LoginInput,
   ProjectListResponse,
@@ -81,6 +84,231 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetProjectEventsUrl = (projectId: string,
+    params?: GetProjectEventsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/projects/${projectId}/events?${stringifiedParams}` : `/api/v1/projects/${projectId}/events`
+}
+
+/**
+ * @summary Authorized paginated events ordered by occurrence time and ID descending
+ */
+export const getProjectEvents = async (projectId: string,
+    params?: GetProjectEventsParams, options?: Parameters<typeof customFetch>[1]): Promise<ExplorerEventListResponse> => {
+
+  return customFetch<ExplorerEventListResponse>(getGetProjectEventsUrl(projectId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectEventsQueryKey = (projectId: string,
+    params?: GetProjectEventsParams,) => {
+    return [
+    `/api/v1/projects/${projectId}/events`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProjectEventsQueryOptions = <TData = Awaited<ReturnType<typeof getProjectEvents>>, TError = ErrorType<AuthErrorResponse>>(projectId: string,
+    params?: GetProjectEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectEventsQueryKey(projectId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectEvents>>> = ({ signal }) => getProjectEvents(projectId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectEvents>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectEvents>>>
+export type GetProjectEventsQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetProjectEvents<TData = Awaited<ReturnType<typeof getProjectEvents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params: undefined |  GetProjectEventsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvents>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectEvents>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectEvents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectEvents<TData = Awaited<ReturnType<typeof getProjectEvents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetProjectEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvents>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectEvents>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectEvents>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectEvents<TData = Awaited<ReturnType<typeof getProjectEvents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetProjectEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Authorized paginated events ordered by occurrence time and ID descending
+ */
+
+export function useGetProjectEvents<TData = Awaited<ReturnType<typeof getProjectEvents>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetProjectEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvents>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProjectEventsQueryOptions(projectId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetProjectEventUrl = (projectId: string,
+    eventRecordId: string,) => {
+
+
+
+
+  return `/api/v1/projects/${projectId}/events/${eventRecordId}`
+}
+
+/**
+ * @summary Authorized event details with credential-like metadata redacted
+ */
+export const getProjectEvent = async (projectId: string,
+    eventRecordId: string, options?: Parameters<typeof customFetch>[1]): Promise<ExplorerEventDetailResponse> => {
+
+  return customFetch<ExplorerEventDetailResponse>(getGetProjectEventUrl(projectId,eventRecordId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectEventQueryKey = (projectId: string,
+    eventRecordId: string,) => {
+    return [
+    `/api/v1/projects/${projectId}/events/${eventRecordId}`
+    ] as const;
+    }
+
+
+export const getGetProjectEventQueryOptions = <TData = Awaited<ReturnType<typeof getProjectEvent>>, TError = ErrorType<AuthErrorResponse>>(projectId: string,
+    eventRecordId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectEventQueryKey(projectId,eventRecordId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectEvent>>> = ({ signal }) => getProjectEvent(projectId,eventRecordId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined && eventRecordId !== null && eventRecordId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectEvent>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProjectEventQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectEvent>>>
+export type GetProjectEventQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetProjectEvent<TData = Awaited<ReturnType<typeof getProjectEvent>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    eventRecordId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvent>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectEvent>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectEvent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectEvent<TData = Awaited<ReturnType<typeof getProjectEvent>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    eventRecordId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvent>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProjectEvent>>,
+          TError,
+          Awaited<ReturnType<typeof getProjectEvent>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProjectEvent<TData = Awaited<ReturnType<typeof getProjectEvent>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    eventRecordId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Authorized event details with credential-like metadata redacted
+ */
+
+export function useGetProjectEvent<TData = Awaited<ReturnType<typeof getProjectEvent>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    eventRecordId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProjectEvent>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProjectEventQueryOptions(projectId,eventRecordId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetDashboardSummaryUrl = (projectId: string,) => {
 

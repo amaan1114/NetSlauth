@@ -5,6 +5,59 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface ExplorerEvent {
+  id: string;
+  projectId: string;
+  agentId: string;
+  agentName: string;
+  eventType: string;
+  sourceIp: string;
+  /** @nullable */
+  sourcePort: number | null;
+  destinationIp: string;
+  /** @nullable */
+  destinationPort: number | null;
+  protocol: string;
+  occurredAt: string;
+}
+
+export type ExplorerEventDetailMetadata = { [key: string]: unknown };
+
+export type ExplorerEventDetail = ExplorerEvent & {
+  eventId: string;
+  receivedAt: string;
+  metadata: ExplorerEventDetailMetadata;
+};
+
+export type ExplorerEventListResponseDataPagination = {
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+};
+
+export type ExplorerEventListResponseData = {
+  events: ExplorerEvent[];
+  pagination: ExplorerEventListResponseDataPagination;
+};
+
+export interface ExplorerEventListResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: ExplorerEventListResponseData;
+}
+
+export type ExplorerEventDetailResponseData = {
+  event: ExplorerEventDetail;
+};
+
+export interface ExplorerEventDetailResponse {
+  success: true;
+  statusCode: 200;
+  message: string;
+  data: ExplorerEventDetailResponseData;
+}
+
 export interface DashboardMetrics {
   totalAgents: number;
   onlineAgents: number;
@@ -536,6 +589,59 @@ export interface HealthStatus {
  * Validation, authentication, authorization, not-found, or rate-limit error
  */
 export type AuthErrorResponse = ApiErrorResponse;
+
+export type GetProjectEventsParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @minimum 0
+ * @maximum 1000000
+ */
+offset?: number;
+eventType?: GetProjectEventsEventType;
+protocol?: GetProjectEventsProtocol;
+/**
+ * Exact IPv4 or IPv6 address
+ */
+sourceIp?: string;
+/**
+ * Exact IPv4 or IPv6 address
+ */
+destinationIp?: string;
+agentId?: string;
+/**
+ * Inclusive occurrence timestamp
+ */
+start?: string;
+/**
+ * Exclusive occurrence timestamp after start
+ */
+end?: string;
+};
+
+export type GetProjectEventsEventType = typeof GetProjectEventsEventType[keyof typeof GetProjectEventsEventType];
+
+
+export const GetProjectEventsEventType = {
+  NETWORK_CONNECTION_ATTEMPT: 'NETWORK_CONNECTION_ATTEMPT',
+  NETWORK_CONNECTION_ESTABLISHED: 'NETWORK_CONNECTION_ESTABLISHED',
+  AUTHENTICATION_FAILURE: 'AUTHENTICATION_FAILURE',
+  AUTHENTICATION_SUCCESS: 'AUTHENTICATION_SUCCESS',
+  SERVICE_DISCOVERED: 'SERVICE_DISCOVERED',
+  AGENT_HEARTBEAT: 'AGENT_HEARTBEAT',
+} as const;
+
+export type GetProjectEventsProtocol = typeof GetProjectEventsProtocol[keyof typeof GetProjectEventsProtocol];
+
+
+export const GetProjectEventsProtocol = {
+  TCP: 'TCP',
+  UDP: 'UDP',
+  OTHER: 'OTHER',
+} as const;
 
 export type GetDashboardActivityParams = {
 range?: GetDashboardActivityRange;

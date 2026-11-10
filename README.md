@@ -7,7 +7,9 @@ TCP/UDP socket metadata. The Next.js frontend provides cookie-authenticated
 navigation, workspace/project selection, and a persisted-data overview with
 project counts, activity, alerts and agent health. Agent management includes
 registration with one-time setup credentials, details, and confirmed revocation.
-Full event exploration and alert investigation remain deferred.
+The Network Events Explorer adds server-side filtering/pagination and scoped
+event details. Alert investigation remains deferred.
+See [event exploration](docs/events-explorer.md) for filters and API boundaries.
 See [agent management](docs/agent-management.md) for its API and setup boundaries.
 See [the database package](packages/database/README.md) for the complete schema,
 migrations, connection setup, and security boundaries.

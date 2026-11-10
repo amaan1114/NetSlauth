@@ -64,6 +64,7 @@ export default defineConfig({
         operations: {
           getAlerts: { zod: { generate: { param: false } } },
           getDashboardActivity: { zod: { generate: { param: false } } },
+          getProjectEvents: { zod: { generate: { param: false } } },
         },
         zod: {
           // Orval resolves `auto` from lib/api-spec/package.json, which has no
