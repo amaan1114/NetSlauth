@@ -11,6 +11,39 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /v1/projects/{projectId}/dashboard/summary:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      operationId: getDashboardSummary
+      security: [{ AccessCookie: [] }]
+      summary: Authorized project counts, latest 8 alerts and first 10 agents
+      description: All-time counts. Critical and severity counts include all statuses. Agent status is stored status, not inferred liveness. Event total includes all persisted event types.
+      responses:
+        "200":
+          description: Dashboard snapshot
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardSummaryResponse" }
+        default: { $ref: "#/components/responses/AuthError" }
+  /v1/projects/{projectId}/dashboard/activity:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      operationId: getDashboardActivity
+      security: [{ AccessCookie: [] }]
+      summary: Authorized project event counts by occurrence time
+      parameters:
+        - in: query
+          name: range
+          schema: { type: string, enum: [1h, 24h, 7d], default: 24h }
+      responses:
+        "200":
+          description: Zero-filled UTC buckets in a half-open time window
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DashboardActivityResponse" }
+        default: { $ref: "#/components/responses/AuthError" }
   /v1/projects/{projectId}/alerts:
     parameters:
       - $ref: "#/components/parameters/ProjectId"
@@ -421,6 +454,105 @@ components:
           schema:
             $ref: "#/components/schemas/ApiErrorResponse"
   schemas:
+    DashboardMetrics:
+      type: object
+      required: [totalAgents, onlineAgents, offlineAgents, inactiveAgents, totalNetworkEvents, openAlerts, criticalAlerts]
+      properties:
+        totalAgents: { type: integer }
+        onlineAgents: { type: integer }
+        offlineAgents: { type: integer }
+        inactiveAgents: { type: integer }
+        totalNetworkEvents: { type: integer }
+        openAlerts: { type: integer }
+        criticalAlerts: { type: integer }
+    DashboardAlert:
+      type: object
+      required: [id, projectId, title, severity, status, ruleId, sourceIp, firstSeenAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        title: { type: string }
+        severity: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] }
+        status: { type: string, enum: [OPEN, ACKNOWLEDGED, RESOLVED] }
+        ruleId: { type: string }
+        sourceIp: { type: [string, "null"] }
+        firstSeenAt: { type: string, format: date-time }
+    DashboardAgent:
+      type: object
+      required: [id, projectId, name, status, lastHeartbeatAt, revokedAt]
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        name: { type: string }
+        status: { type: string, enum: [ONLINE, OFFLINE, INACTIVE] }
+        lastHeartbeatAt: { type: [string, "null"], format: date-time }
+        revokedAt: { type: [string, "null"], format: date-time }
+    DashboardSeverityCounts:
+      type: object
+      required: [CRITICAL, HIGH, MEDIUM, LOW]
+      properties:
+        CRITICAL: { type: integer }
+        HIGH: { type: integer }
+        MEDIUM: { type: integer }
+        LOW: { type: integer }
+    DashboardAgentHealth:
+      type: object
+      required: [items, limit, hasMore]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/DashboardAgent" }
+        limit: { type: integer }
+        hasMore: { type: boolean }
+    DashboardSummary:
+      type: object
+      required: [projectId, generatedAt, metrics, severityDistribution, recentAlerts, agentHealth]
+      properties:
+        projectId: { type: string, format: uuid }
+        generatedAt: { type: string, format: date-time }
+        metrics: { $ref: "#/components/schemas/DashboardMetrics" }
+        severityDistribution: { $ref: "#/components/schemas/DashboardSeverityCounts" }
+        recentAlerts:
+          type: array
+          items: { $ref: "#/components/schemas/DashboardAlert" }
+        agentHealth: { $ref: "#/components/schemas/DashboardAgentHealth" }
+    DashboardBucket:
+      type: object
+      required: [start, network, authentication, heartbeat, service]
+      properties:
+        start: { type: string, format: date-time }
+        network: { type: integer }
+        authentication: { type: integer }
+        heartbeat: { type: integer }
+        service: { type: integer }
+    DashboardActivity:
+      type: object
+      required: [projectId, range, from, to, intervalMinutes, buckets]
+      properties:
+        projectId: { type: string, format: uuid }
+        range: { type: string, enum: [1h, 24h, 7d] }
+        from: { type: string, format: date-time }
+        to: { type: string, format: date-time }
+        intervalMinutes: { type: integer }
+        buckets:
+          type: array
+          items: { $ref: "#/components/schemas/DashboardBucket" }
+    DashboardSummaryResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer }
+        message: { type: string }
+        data: { $ref: "#/components/schemas/DashboardSummary" }
+    DashboardActivityResponse:
+      type: object
+      required: [success, statusCode, message, data]
+      properties:
+        success: { type: boolean, const: true }
+        statusCode: { type: integer }
+        message: { type: string }
+        data: { $ref: "#/components/schemas/DashboardActivity" }
     DatabaseDestination:
       type: object
       additionalProperties: false

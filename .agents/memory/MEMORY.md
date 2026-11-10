@@ -2,3 +2,4 @@
 - [Orval export collisions](orval-export-collisions.md) — path validators can collide with query DTOs across generated barrels; codegen success alone is insufficient.
 - [PostgreSQL client context](postgres-client-context.md) — inherited client defaults can select the wrong identity for fresh local cluster checks.
 - [Next.js preview origins](next-preview-origins.md) — blocked development resources can leave server-rendered loading skeletons visible without hydration.
+- [Scrollable table boundaries](scrollable-table-boundaries.md) — positioned descendants can escape a local scroller and widen the mobile document.

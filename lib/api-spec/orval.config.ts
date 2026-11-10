@@ -63,6 +63,7 @@ export default defineConfig({
         // The API already validates projectId with projectParamsSchema.
         operations: {
           getAlerts: { zod: { generate: { param: false } } },
+          getDashboardActivity: { zod: { generate: { param: false } } },
         },
         zod: {
           // Orval resolves `auto` from lib/api-spec/package.json, which has no

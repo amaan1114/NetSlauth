@@ -1,22 +1,37 @@
 "use client";
 
+import { useState } from "react";
+import type { DashboardRange } from "@workspace/netsleuth-shared";
 import { PageHeading } from "@/components/dashboard/page-heading";
-import { useAuth } from "@/components/providers/auth-provider";
 import { useDashboard } from "@/components/providers/dashboard-provider";
 import { Icon } from "@/components/ui/icon";
+import { useDashboardOverview } from "@/hooks/use-dashboard-overview";
+import {
+  ActivityPanel,
+  AgentHealthPanel,
+  MetricGrid,
+  OverviewError,
+  OverviewLoading,
+  RecentAlertsPanel,
+  SeverityPanel,
+} from "@/components/dashboard/overview-panels";
 
 export function OverviewContent() {
-  const { user } = useAuth();
-  const { workspace, project, workspaces, projects, workspaceLoading, projectLoading, workspaceError, projectError } = useDashboard();
+  const { workspace, project, workspaces, projects, workspaceLoading, projectLoading, workspaceError, projectError, reloadProjects, reloadWorkspaces } = useDashboard();
+  const [range, setRange] = useState<DashboardRange>("24h");
+  const projectId = project?.id ?? "";
+  const { summary, activity, refresh } = useDashboardOverview(projectId, range);
   const scopeLoading = workspaceLoading || projectLoading;
 
   return (
     <main className="page-wrap">
-      <PageHeading eyebrow="Workspace overview" title="Overview" description="A grounded view of the workspace and project currently in scope. Monitoring data will appear here as dashboard features are delivered." />
+      <PageHeading eyebrow="Project overview" title="Overview" description="A clear read on registered infrastructure, recorded activity, and alert state for the project in scope. Counts update when this view is refreshed." >
+        {project ? <button className="overview-refresh" type="button" onClick={refresh} disabled={summary.loading || activity.loading} data-testid="button-refresh-overview"><Icon name="refresh" size={14} />Refresh</button> : null}
+      </PageHeading>
       {scopeLoading ? (
         <div className="panel" aria-label="Loading current scope"><div className="panel-content"><div className="skeleton" style={{ width: 180, height: 16, borderRadius: 4 }} /><div className="skeleton" style={{ width: "70%", height: 12, marginTop: 13, borderRadius: 4 }} /></div></div>
       ) : workspaceError || projectError ? (
-        <div className="empty-scope" role="alert"><span className="empty-icon"><Icon name="warning" /></span><div><h2 className="empty-title">Scope could not be loaded</h2><p className="empty-copy error-copy">{workspaceError ?? projectError}</p><p className="empty-copy">Use the selectors above to retry the request.</p></div></div>
+        <div className="empty-scope" role="alert"><span className="empty-icon"><Icon name="warning" /></span><div><h2 className="empty-title">Scope could not be loaded</h2><p className="empty-copy error-copy">{workspaceError ?? projectError}</p><button type="button" className="retry-button" onClick={() => { void reloadWorkspaces(); void reloadProjects(); }}>Retry scope request</button></div></div>
       ) : !workspaces.length ? (
         <div className="empty-scope"><span className="empty-icon"><Icon name="layers" /></span><div><h2 className="empty-title">No workspaces available</h2><p className="empty-copy">Create or join a workspace through the existing workspace setup API. NetSleuth keeps workspace creation outside this dashboard foundation.</p></div></div>
       ) : !workspace ? (
@@ -27,34 +42,44 @@ export function OverviewContent() {
         <div className="empty-scope"><span className="empty-icon"><Icon name="folder" /></span><div><h2 className="empty-title">Select a project</h2><p className="empty-copy">Choose an authorized project in the workspace selector.</p></div></div>
       ) : (
         <>
-          <div className="scope-line" aria-label="Current dashboard scope">
-            <span className="scope-chip"><Icon name="layers" size={13} />{workspace.name}</span>
-            <span className="scope-chip"><Icon name="folder" size={13} />{project.name}</span>
+          <div className="overview-scope-line">
+            <div className="scope-line" aria-label="Current dashboard scope">
+              <span className="scope-chip"><Icon name="layers" size={13} />{workspace.name}</span>
+              <span className="scope-chip"><Icon name="folder" size={13} />{project.name}</span>
+            </div>
+            <div className="fetched-at" data-testid="text-fetched-at">
+              {summary.fetchedAt || activity.fetchedAt
+                ? <>Fetched {new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" }).format(new Date(summary.fetchedAt ?? activity.fetchedAt!))}</>
+                : "Awaiting project data"}
+            </div>
           </div>
-          <div className="foundation-grid" style={{ marginTop: 17 }}>
-            <section className="panel context-panel">
-              <div className="panel-header"><h2 className="panel-title">Project context</h2><span className="tag">Authorized scope</span></div>
-              <div className="context-body">
-                <span className="context-symbol"><Icon name="shield" size={20} /></span>
-                <h2 className="context-title">Your project is in view.</h2>
-                <p className="context-copy">{project.description?.trim() || "No project description has been added."} The overview is ready for real monitoring data when those dashboard features are implemented.</p>
+          {summary.loading && !summary.data ? <OverviewLoading /> : null}
+          {summary.error ? <OverviewError message={summary.error} retry={refresh} /> : null}
+          {activity.error ? <OverviewError message={activity.error} retry={refresh} /> : null}
+          {summary.data ? (
+            <>
+              <MetricGrid metrics={summary.data.metrics} />
+              <div className="overview-grid">
+                <ActivityPanel activity={activity.data} range={range} onRangeChange={setRange} error={activity.error} />
+                <SeverityPanel distribution={summary.data.severityDistribution} />
               </div>
-            </section>
-            <section className="panel">
-              <div className="panel-header"><h2 className="panel-title">Current session</h2><span className="status-dot" title="Authenticated" /></div>
-              <div className="panel-content scope-details">
-                <div className="detail-row"><span className="detail-label">Signed in as</span><span className="detail-value">{user?.name}</span></div>
-                <div className="detail-row"><span className="detail-label">Account</span><span className="detail-value">{user?.email}</span></div>
-                <div className="detail-row"><span className="detail-label">Workspace</span><span className="detail-value">{workspace.name}</span></div>
-                <div className="detail-row"><span className="detail-label">Project</span><span className="detail-value">{project.name}</span></div>
+              <div className="overview-lower-grid">
+                <RecentAlertsPanel alerts={summary.data.recentAlerts} />
+                <AgentHealthPanel agents={summary.data.agentHealth.items} hasMore={summary.data.agentHealth.hasMore} projectName={project.name} />
               </div>
-            </section>
-          </div>
+            </>
+          ) : null}
+          {!summary.data && summary.error && activity.data ? (
+            <div className="overview-grid overview-partial-grid">
+              <ActivityPanel activity={activity.data} range={range} onRangeChange={setRange} error={activity.error} />
+              <div className="panel-empty overview-no-data"><span className="empty-mark"><Icon name="warning" size={17} /></span><div><strong>Severity distribution unavailable</strong><p>Severity counts are included in the project summary, which could not be loaded.</p></div></div>
+            </div>
+          ) : null}
+          {!summary.loading && !summary.error && !summary.data ? (
+            <div className="panel-empty overview-no-data"><span className="empty-mark"><Icon name="shield" size={17} /></span><div><strong>Project summary is not available</strong><p>Retry to request the selected project’s current summary.</p></div></div>
+          ) : null}
         </>
       )}
-      <hr className="page-divider" />
-      <div className="eyebrow">Monitoring data</div>
-      <p className="page-description" style={{ marginTop: 8 }}>No agents, events, alerts, or activity counts are fabricated in this foundation. Explore the sections from the sidebar for their current implementation status.</p>
     </main>
   );
 }

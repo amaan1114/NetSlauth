@@ -22,7 +22,8 @@ API on `/api`. The shared proxy routes API calls without the local rewrite.
 
 - `/` redirects to `/dashboard`.
 - `/login` and `/register` submit to the existing authentication endpoints.
-- `/dashboard` shows the actual authorized workspace/project context.
+- `/dashboard` shows project-scoped aggregate metrics, network/authentication
+  activity, severity distribution, recent alerts and bounded agent health.
 - `/dashboard/agents`, `/dashboard/events`, `/dashboard/alerts` show scoped
   foundation screens, not records or management features.
 - `/dashboard/settings` shows read-only account and selected project details.
@@ -43,6 +44,8 @@ The retained starter-generated client does not cover these NetSleuth endpoints.
 - `GET /api/v1/auth/me`
 - `GET /api/v1/workspaces`
 - `GET /api/v1/workspaces/:workspaceId/projects`
+- `GET /api/v1/projects/:projectId/dashboard/summary`
+- `GET /api/v1/projects/:projectId/dashboard/activity?range=24h`
 
 Workspace/project selections are stored under the current user's ID, then
 validated against current authorized API results before being used. Changing
@@ -52,10 +55,23 @@ Logout clears user-scoped browser state.
 
 ## Scope
 
-No metrics, sample alerts, invented health states, agent management, event
-explorer, alert investigation, or editable settings are included. Workspace and
+The overview uses persisted backend data, not sample alerts or invented health
+states. No agent management, full event explorer, alert investigation, or editable settings are included. Workspace and
 project creation still use the existing API. No backend changes or new runtime
-dependencies were needed.
+dependencies were needed for the original foundation; the overview adds two
+read-only aggregate endpoints and reuses the workspace's Recharts library.
+
+## Overview semantics
+
+See [the overview API contract](../../docs/dashboard-overview.md). Summary
+counts are all-time; critical/severity counts include all alert statuses.
+The event total includes heartbeat and service records, while the chart
+separates network connections from authentication and reports omitted
+heartbeat/service counts. Timeseries uses `occurredAt`, not ingestion time.
+Agent status is the stored value; an old heartbeat does not automatically
+change it. Requests are scoped to project/range, refreshed on navigation,
+manual refresh and focus, not a real-time stream. Alert context links retain
+the alert ID on the existing alerts route; investigation detail remains deferred.
 
 ## Verification
 

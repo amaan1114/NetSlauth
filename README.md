@@ -4,8 +4,9 @@ An open-source, self-hostable security observability platform. The API supports
 cookie authentication, workspace/project isolation, agent credentials, event
 ingestion, and two initial detection rules. A standalone Linux agent collects
 TCP/UDP socket metadata. The Next.js frontend provides cookie-authenticated
-navigation and workspace/project selection. Monitoring screens are foundation
-pages, not yet a metrics dashboard or event/alert explorer.
+navigation, workspace/project selection, and a persisted-data overview with
+project counts, activity, alerts and agent health. Full event exploration,
+agent management and alert investigation remain deferred.
 See [the database package](packages/database/README.md) for the complete schema,
 migrations, connection setup, and security boundaries.
 See [the API package](apps/api/README.md) for backend structure and health routes.
@@ -290,7 +291,7 @@ generate deduplicated alerts. Project policy configuration and a paginated,
 member-authorized alerts endpoint are available; see `apps/api/README.md`.
 
 Additional detection rules, PostgreSQL log
-collection, packet capture, monitoring dashboard features, Dockerfiles, and Compose are deferred.
+collection, packet capture, additional monitoring dashboard features, Dockerfiles, and Compose are deferred.
 No simulated events are presented as real observations.
 
 ## Register an agent and exercise the API
@@ -366,8 +367,9 @@ See [verification results and remaining gaps](docs/integration-report.md).
 
 ## Current limitations
 
-- Dashboard foundation only: no metrics, event explorer, agent management, or
-  alert investigation UI. Workspace/project creation still uses the existing API.
+- The overview has aggregate metrics and bounded read-only lists, not a full
+  event explorer, agent manager, or alert investigator. Workspace/project
+  creation still uses the existing API. See [overview semantics](docs/dashboard-overview.md).
 - Socket.IO has no authenticated project subscriptions or application events.
 - Polling can miss transient sockets; observed direction can be unknown.
   UDP association is not a handshake, and bound sockets do not prove a service.

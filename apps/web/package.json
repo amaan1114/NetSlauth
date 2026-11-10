@@ -12,22 +12,23 @@
   },
   "dependencies": {
     "@workspace/netsleuth-shared": "workspace:*",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
     "next": "^16.2.0",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "class-variance-authority": "catalog:",
-    "clsx": "catalog:",
-    "tailwind-merge": "catalog:",
-    "socket.io-client": "^4.8.1"
+    "recharts": "2.15.4",
+    "socket.io-client": "^4.8.1",
+    "tailwind-merge": "catalog:"
   },
   "devDependencies": {
-    "@workspace/netsleuth-config": "workspace:*",
-    "eslint": "^9.39.0",
     "@tailwindcss/postcss": "^4.1.14",
-    "tailwindcss": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@workspace/netsleuth-config": "workspace:*",
+    "eslint": "^9.39.0",
+    "tailwindcss": "catalog:",
     "typescript": "~5.9.3"
   }
 }

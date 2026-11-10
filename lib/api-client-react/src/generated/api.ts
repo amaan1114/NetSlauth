@@ -38,11 +38,14 @@ import type {
   AuthUserResponse,
   CreateProjectInput,
   CreateWorkspaceInput,
+  DashboardActivityResponse,
+  DashboardSummaryResponse,
   DatabasePolicyInput,
   DatabasePolicyResponse,
   EventIngestionInput,
   EventIngestionResponse,
   GetAlertsParams,
+  GetDashboardActivityParams,
   HealthStatus,
   LoginInput,
   ProjectListResponse,
@@ -78,6 +81,224 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetDashboardSummaryUrl = (projectId: string,) => {
+
+
+
+
+  return `/api/v1/projects/${projectId}/dashboard/summary`
+}
+
+/**
+ * All-time counts. Critical and severity counts include all statuses. Agent status is stored status, not inferred liveness. Event total includes all persisted event types.
+ * @summary Authorized project counts, latest 8 alerts and first 10 agents
+ */
+export const getDashboardSummary = async (projectId: string, options?: Parameters<typeof customFetch>[1]): Promise<DashboardSummaryResponse> => {
+
+  return customFetch<DashboardSummaryResponse>(getGetDashboardSummaryUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDashboardSummaryQueryKey = (projectId: string,) => {
+    return [
+    `/api/v1/projects/${projectId}/dashboard/summary`
+    ] as const;
+    }
+
+
+export const getGetDashboardSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<AuthErrorResponse>>(projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDashboardSummaryQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardSummary>>> = ({ signal }) => getDashboardSummary(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDashboardSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardSummary>>>
+export type GetDashboardSummaryQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDashboardSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getDashboardSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDashboardSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getDashboardSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Authorized project counts, latest 8 alerts and first 10 agents
+ */
+
+export function useGetDashboardSummary<TData = Awaited<ReturnType<typeof getDashboardSummary>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDashboardSummaryQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDashboardActivityUrl = (projectId: string,
+    params?: GetDashboardActivityParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/projects/${projectId}/dashboard/activity?${stringifiedParams}` : `/api/v1/projects/${projectId}/dashboard/activity`
+}
+
+/**
+ * @summary Authorized project event counts by occurrence time
+ */
+export const getDashboardActivity = async (projectId: string,
+    params?: GetDashboardActivityParams, options?: Parameters<typeof customFetch>[1]): Promise<DashboardActivityResponse> => {
+
+  return customFetch<DashboardActivityResponse>(getGetDashboardActivityUrl(projectId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDashboardActivityQueryKey = (projectId: string,
+    params?: GetDashboardActivityParams,) => {
+    return [
+    `/api/v1/projects/${projectId}/dashboard/activity`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetDashboardActivityQueryOptions = <TData = Awaited<ReturnType<typeof getDashboardActivity>>, TError = ErrorType<AuthErrorResponse>>(projectId: string,
+    params?: GetDashboardActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDashboardActivityQueryKey(projectId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDashboardActivity>>> = ({ signal }) => getDashboardActivity(projectId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDashboardActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getDashboardActivity>>>
+export type GetDashboardActivityQueryError = ErrorType<AuthErrorResponse>
+
+
+export function useGetDashboardActivity<TData = Awaited<ReturnType<typeof getDashboardActivity>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params: undefined |  GetDashboardActivityParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDashboardActivity>>,
+          TError,
+          Awaited<ReturnType<typeof getDashboardActivity>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDashboardActivity<TData = Awaited<ReturnType<typeof getDashboardActivity>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetDashboardActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDashboardActivity>>,
+          TError,
+          Awaited<ReturnType<typeof getDashboardActivity>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDashboardActivity<TData = Awaited<ReturnType<typeof getDashboardActivity>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetDashboardActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Authorized project event counts by occurrence time
+ */
+
+export function useGetDashboardActivity<TData = Awaited<ReturnType<typeof getDashboardActivity>>, TError = ErrorType<AuthErrorResponse>>(
+ projectId: string,
+    params?: GetDashboardActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDashboardActivity>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDashboardActivityQueryOptions(projectId,params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetAlertsUrl = (projectId: string,
     params?: GetAlertsParams,) => {

@@ -9,6 +9,92 @@ import * as zod from 'zod';
 
 
 /**
+ * All-time counts. Critical and severity counts include all statuses. Agent status is stored status, not inferred liveness. Event total includes all persisted event types.
+ * @summary Authorized project counts, latest 8 alerts and first 10 agents
+ */
+export const GetDashboardSummaryParams = zod.object({
+  "projectId": zod.coerce.string().uuid()
+})
+
+export const GetDashboardSummaryResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "projectId": zod.string().uuid(),
+  "generatedAt": zod.coerce.date(),
+  "metrics": zod.object({
+  "totalAgents": zod.number().int(),
+  "onlineAgents": zod.number().int(),
+  "offlineAgents": zod.number().int(),
+  "inactiveAgents": zod.number().int(),
+  "totalNetworkEvents": zod.number().int(),
+  "openAlerts": zod.number().int(),
+  "criticalAlerts": zod.number().int()
+}),
+  "severityDistribution": zod.object({
+  "CRITICAL": zod.number().int(),
+  "HIGH": zod.number().int(),
+  "MEDIUM": zod.number().int(),
+  "LOW": zod.number().int()
+}),
+  "recentAlerts": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "title": zod.string(),
+  "severity": zod.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']),
+  "status": zod.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED']),
+  "ruleId": zod.string(),
+  "sourceIp": zod.string().nullable(),
+  "firstSeenAt": zod.coerce.date()
+})),
+  "agentHealth": zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "projectId": zod.string().uuid(),
+  "name": zod.string(),
+  "status": zod.enum(['ONLINE', 'OFFLINE', 'INACTIVE']),
+  "lastHeartbeatAt": zod.coerce.date().nullable(),
+  "revokedAt": zod.coerce.date().nullable()
+})),
+  "limit": zod.number().int(),
+  "hasMore": zod.boolean()
+})
+})
+})
+
+
+/**
+ * @summary Authorized project event counts by occurrence time
+ */
+export const getDashboardActivityQueryRangeDefault = `24h`;
+
+export const GetDashboardActivityQueryParams = zod.object({
+  "range": zod.enum(['1h', '24h', '7d']).default(getDashboardActivityQueryRangeDefault)
+})
+
+export const GetDashboardActivityResponse = zod.object({
+  "success": zod.literal(true),
+  "statusCode": zod.number().int(),
+  "message": zod.string(),
+  "data": zod.object({
+  "projectId": zod.string().uuid(),
+  "range": zod.enum(['1h', '24h', '7d']),
+  "from": zod.date(),
+  "to": zod.date(),
+  "intervalMinutes": zod.number().int(),
+  "buckets": zod.array(zod.object({
+  "start": zod.date(),
+  "network": zod.number().int(),
+  "authentication": zod.number().int(),
+  "heartbeat": zod.number().int(),
+  "service": zod.number().int()
+}))
+})
+})
+
+
+/**
  * @summary List project alerts as a workspace member
  */
 export const getAlertsQueryPageDefault = 1;

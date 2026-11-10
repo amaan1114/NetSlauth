@@ -32,12 +32,13 @@ Security observability platform with monorepo, database, and backend foundations
   The independent Linux agent polls ss for socket metadata and publishes new
   observations/heartbeats using its configured agent key.
   The Next.js dashboard foundation includes cookie-authenticated navigation,
-  real workspace/project selection, responsive layout, and read-only context.
+  real workspace/project selection, responsive layout, read-only context, and
+  project-scoped overview counts/activity/recent alerts/agent health.
   Member-management endpoints, additional detection rules, packet capture,
-  authentication-log collection, metrics, event explorer, agent management,
+  authentication-log collection, full event explorer, agent management,
   and alert investigation need separate requests.
-  **Why:** the frontend request explicitly limits this stage to the foundation,
-  with no fake security data or monitoring metrics.
+  **Why:** the overview request explicitly excludes management, exploration and
+  investigation pages; all metrics must come from persisted project data.
 - The managed API workflow runs `apps/api` through Turbo; starter source remains
   preserved but is no longer the active backend.
   **Why:** editing the NetSleuth backend must affect the server used in development.

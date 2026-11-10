@@ -5,6 +5,129 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface DashboardMetrics {
+  totalAgents: number;
+  onlineAgents: number;
+  offlineAgents: number;
+  inactiveAgents: number;
+  totalNetworkEvents: number;
+  openAlerts: number;
+  criticalAlerts: number;
+}
+
+export type DashboardAlertSeverity = typeof DashboardAlertSeverity[keyof typeof DashboardAlertSeverity];
+
+
+export const DashboardAlertSeverity = {
+  CRITICAL: 'CRITICAL',
+  HIGH: 'HIGH',
+  MEDIUM: 'MEDIUM',
+  LOW: 'LOW',
+} as const;
+
+export type DashboardAlertStatus = typeof DashboardAlertStatus[keyof typeof DashboardAlertStatus];
+
+
+export const DashboardAlertStatus = {
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  RESOLVED: 'RESOLVED',
+} as const;
+
+export interface DashboardAlert {
+  id: string;
+  projectId: string;
+  title: string;
+  severity: DashboardAlertSeverity;
+  status: DashboardAlertStatus;
+  ruleId: string;
+  /** @nullable */
+  sourceIp: string | null;
+  firstSeenAt: string;
+}
+
+export type DashboardAgentStatus = typeof DashboardAgentStatus[keyof typeof DashboardAgentStatus];
+
+
+export const DashboardAgentStatus = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  INACTIVE: 'INACTIVE',
+} as const;
+
+export interface DashboardAgent {
+  id: string;
+  projectId: string;
+  name: string;
+  status: DashboardAgentStatus;
+  /** @nullable */
+  lastHeartbeatAt: string | null;
+  /** @nullable */
+  revokedAt: string | null;
+}
+
+export interface DashboardSeverityCounts {
+  CRITICAL: number;
+  HIGH: number;
+  MEDIUM: number;
+  LOW: number;
+}
+
+export interface DashboardAgentHealth {
+  items: DashboardAgent[];
+  limit: number;
+  hasMore: boolean;
+}
+
+export interface DashboardSummary {
+  projectId: string;
+  generatedAt: string;
+  metrics: DashboardMetrics;
+  severityDistribution: DashboardSeverityCounts;
+  recentAlerts: DashboardAlert[];
+  agentHealth: DashboardAgentHealth;
+}
+
+export interface DashboardBucket {
+  start: string;
+  network: number;
+  authentication: number;
+  heartbeat: number;
+  service: number;
+}
+
+export type DashboardActivityRange = typeof DashboardActivityRange[keyof typeof DashboardActivityRange];
+
+
+export const DashboardActivityRange = {
+  '1h': '1h',
+  '24h': '24h',
+  '7d': '7d',
+} as const;
+
+export interface DashboardActivity {
+  projectId: string;
+  range: DashboardActivityRange;
+  from: string;
+  to: string;
+  intervalMinutes: number;
+  buckets: DashboardBucket[];
+}
+
+export interface DashboardSummaryResponse {
+  success: true;
+  statusCode: number;
+  message: string;
+  data: DashboardSummary;
+}
+
+export interface DashboardActivityResponse {
+  success: true;
+  statusCode: number;
+  message: string;
+  data: DashboardActivity;
+}
+
 export type DatabaseDestinationProtocol = typeof DatabaseDestinationProtocol[keyof typeof DatabaseDestinationProtocol];
 
 
@@ -413,6 +536,19 @@ export interface HealthStatus {
  * Validation, authentication, authorization, not-found, or rate-limit error
  */
 export type AuthErrorResponse = ApiErrorResponse;
+
+export type GetDashboardActivityParams = {
+range?: GetDashboardActivityRange;
+};
+
+export type GetDashboardActivityRange = typeof GetDashboardActivityRange[keyof typeof GetDashboardActivityRange];
+
+
+export const GetDashboardActivityRange = {
+  '1h': '1h',
+  '24h': '24h',
+  '7d': '7d',
+} as const;
 
 export type GetAlertsParams = {
 /**
