@@ -1,6 +1,6 @@
 kind = "api"
-previewPath = "/api"
-title = "NetSleuth API"
+previewPath = "/"
+title = "NetSleuth"
 version = "1.0.0"
 id = "3B4_FFSkEVBkAeYMFRJ2e"
 
@@ -29,3 +29,27 @@ NODE_ENV = "production"
 
 [services.production.health.startup]
 path = "/health"
+
+[[services]]
+localPort = 3000
+name = "Web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/netsleuth-web dev"
+
+[services.production.build]
+args = ["pnpm", "exec", "turbo", "run", "build", "--filter=@workspace/netsleuth-web..."]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = ["pnpm", "--filter", "@workspace/netsleuth-web", "start"]
+
+[services.production.run.env]
+PORT = "3000"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/login"

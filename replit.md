@@ -31,11 +31,20 @@ Security observability platform with monorepo, database, and backend foundations
   paginated authorized alert listing.
   The independent Linux agent polls ss for socket metadata and publishes new
   observations/heartbeats using its configured agent key.
+  The Next.js dashboard foundation includes cookie-authenticated navigation,
+  real workspace/project selection, responsive layout, and read-only context.
   Member-management endpoints, additional detection rules, packet capture,
-  authentication-log collection, and dashboard features need separate requests.
+  authentication-log collection, metrics, event explorer, agent management,
+  and alert investigation need separate requests.
+  **Why:** the frontend request explicitly limits this stage to the foundation,
+  with no fake security data or monitoring metrics.
 - The managed API workflow runs `apps/api` through Turbo; starter source remains
   preserved but is no longer the active backend.
   **Why:** editing the NetSleuth backend must affect the server used in development.
+- The same product artifact runs the existing `apps/web` Next.js app on `/`,
+  alongside the API on `/api`; see `apps/web/README.md` for local setup.
+  **Why:** preserve the existing Next.js application instead of creating a
+  competing generated frontend.
 - `packages/database` owns the schema and connection implementation; `lib/db` is
   a compatibility wrapper. See `packages/database/README.md` for constraints.
   **Why:** avoid competing starter and NetSleuth database implementations.

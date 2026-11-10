@@ -3,8 +3,9 @@
 An open-source, self-hostable security observability platform. The API supports
 cookie authentication, workspace/project isolation, agent credentials, event
 ingestion, and two initial detection rules. A standalone Linux agent collects
-TCP/UDP socket metadata. **The Next.js frontend is still a placeholder**, not
-a working monitoring dashboard.
+TCP/UDP socket metadata. The Next.js frontend provides cookie-authenticated
+navigation and workspace/project selection. Monitoring screens are foundation
+pages, not yet a metrics dashboard or event/alert explorer.
 See [the database package](packages/database/README.md) for the complete schema,
 migrations, connection setup, and security boundaries.
 See [the API package](apps/api/README.md) for backend structure and health routes.
@@ -42,7 +43,7 @@ secret manager or ignored package-local `.env` files, never in Git.
 | API runtime | `PORT=4000`, `HOST=0.0.0.0`, `NODE_ENV=development`, `CORS_ORIGINS=http://localhost:3000` by default. |
 | Browser cookies | `JWT_ACCESS_TTL_SECONDS=900`, `JWT_REFRESH_TTL_SECONDS=604800`, `COOKIE_SAME_SITE=lax`. `COOKIE_SECURE` defaults on in production; `COOKIE_DOMAIN` is optional. Production and SameSite=None require secure cookies. |
 | Database CLI (`packages/database/.env`) | `DATABASE_URL` for development/local migration commands. Existing process variables take precedence. |
-| Frontend | No application-specific environment variables/API caller exist yet. Optional process `PORT` selects its listening port (default 3000). Never put server secrets in `NEXT_PUBLIC_*` variables. |
+| Frontend (`apps/web/.env.local`) | Optional server-only `NETSLEUTH_API_URL` selects the API origin for local Next.js rewrites (default `http://127.0.0.1:4000`). Browser requests use same-origin `/api/v1` with credentials. Optional process `PORT` selects the listening port (default 3000). Never put server secrets in `NEXT_PUBLIC_*` variables. |
 | Agent (`apps/agent/.env`) | Required: `NETSLEUTH_API_URL` (base origin), `NETSLEUTH_AGENT_KEY` (issued by registration). Defaults: `COLLECTION_INTERVAL_MS=10000`, `HEARTBEAT_INTERVAL_MS=30000`. Production requires HTTPS. |
 
 Browser clients must retain HTTP-only cookies and use `credentials: "include"`.
@@ -229,7 +230,7 @@ generated `next-env.d.ts` during builds. Compiled files are ignored.
 ```text
 Browser HTTP client ── cookie-authenticated REST ──> API ── Drizzle ──> PostgreSQL
 Linux agent ── X-Agent-Key / HTTP event ingestion ──> API ── detection ──> alerts
-Next.js frontend: placeholder; no API integration yet
+Next.js frontend ── same-origin /api/v1, HTTP-only cookies ──> API
 ```
 
 The API implements REST authentication, workspace/project management, agent
@@ -251,8 +252,9 @@ The production agent must never import API internals or database repositories.
 It depends only on shared contracts and its own collection/transport code.
 The web application must never import server-only database code.
 
-Tailwind CSS is configured. shadcn/ui configuration and its class utility are
-prepared; no UI components or dashboard features have been generated.
+Tailwind CSS and shadcn/ui configuration are reused by the dashboard foundation.
+The frontend has shared auth/dashboard providers, layout and UI components;
+see [the web application](apps/web/README.md) for routes and integration details.
 
 ## Architectural risks to resolve in later stages
 
@@ -288,7 +290,7 @@ generate deduplicated alerts. Project policy configuration and a paginated,
 member-authorized alerts endpoint are available; see `apps/api/README.md`.
 
 Additional detection rules, PostgreSQL log
-collection, packet capture, dashboards, Dockerfiles, and Compose are deferred.
+collection, packet capture, monitoring dashboard features, Dockerfiles, and Compose are deferred.
 No simulated events are presented as real observations.
 
 ## Register an agent and exercise the API
@@ -364,7 +366,8 @@ See [verification results and remaining gaps](docs/integration-report.md).
 
 ## Current limitations
 
-- No usable dashboard, browser login forms, or frontend-to-API integration yet.
+- Dashboard foundation only: no metrics, event explorer, agent management, or
+  alert investigation UI. Workspace/project creation still uses the existing API.
 - Socket.IO has no authenticated project subscriptions or application events.
 - Polling can miss transient sockets; observed direction can be unknown.
   UDP association is not a handshake, and bound sockets do not prove a service.
