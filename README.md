@@ -5,8 +5,10 @@ cookie authentication, workspace/project isolation, agent credentials, event
 ingestion, and two initial detection rules. A standalone Linux agent collects
 TCP/UDP socket metadata. The Next.js frontend provides cookie-authenticated
 navigation, workspace/project selection, and a persisted-data overview with
-project counts, activity, alerts and agent health. Full event exploration,
-agent management and alert investigation remain deferred.
+project counts, activity, alerts and agent health. Agent management includes
+registration with one-time setup credentials, details, and confirmed revocation.
+Full event exploration and alert investigation remain deferred.
+See [agent management](docs/agent-management.md) for its API and setup boundaries.
 See [the database package](packages/database/README.md) for the complete schema,
 migrations, connection setup, and security boundaries.
 See [the API package](apps/api/README.md) for backend structure and health routes.

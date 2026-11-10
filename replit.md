@@ -33,12 +33,15 @@ Security observability platform with monorepo, database, and backend foundations
   observations/heartbeats using its configured agent key.
   The Next.js dashboard foundation includes cookie-authenticated navigation,
   real workspace/project selection, responsive layout, read-only context, and
-  project-scoped overview counts/activity/recent alerts/agent health.
+  project-scoped overview counts/activity/recent alerts/agent health, and
+  agent listing, registration with one-time setup credentials, details, and
+  confirmed revocation.
   Member-management endpoints, additional detection rules, packet capture,
-  authentication-log collection, full event explorer, agent management,
+  authentication-log collection, full event explorer,
   and alert investigation need separate requests.
-  **Why:** the overview request explicitly excludes management, exploration and
-  investigation pages; all metrics must come from persisted project data.
+  **Why:** overview and agent management are requested product surfaces;
+  exploration and investigation remain separate work. All data must come from
+  persisted, authorized project records.
 - The managed API workflow runs `apps/api` through Turbo; starter source remains
   preserved but is no longer the active backend.
   **Why:** editing the NetSleuth backend must affect the server used in development.

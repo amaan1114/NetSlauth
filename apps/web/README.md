@@ -56,7 +56,10 @@ Logout clears user-scoped browser state.
 ## Scope
 
 The overview uses persisted backend data, not sample alerts or invented health
-states. No agent management, full event explorer, alert investigation, or editable settings are included. Workspace and
+states. Agent management supports project-scoped lists, one-time registration
+credentials and setup instructions, details, and confirmed revocation using the
+existing backend APIs. See [agent management](../../docs/agent-management.md).
+Full event explorer, alert investigation, and editable settings are not included. Workspace and
 project creation still use the existing API. No backend changes or new runtime
 dependencies were needed for the original foundation; the overview adds two
 read-only aggregate endpoints and reuses the workspace's Recharts library.
