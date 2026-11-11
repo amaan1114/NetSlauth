@@ -4,6 +4,7 @@ import { loadAgentEnv, readConfig } from "./config/index.js";
 import { collectNetworkObservations, getNewConnectionEvents } from "./collectors/networkCollector.js";
 import { publishEvents } from "./services/eventPublisher.js";
 import { publishHeartbeat } from "./services/heartbeat.js";
+import { EventSpool } from "./services/eventSpool.js";
 import { logger } from "./utils/logger.js";
 import type { AgentConfig } from "./types/index.js";
 
@@ -14,6 +15,7 @@ export const startAgent = (config: AgentConfig, shutdownTimeoutMs = 10000) => {
   let stopping = false;
   let collecting = false;
   let heartbeating = false;
+  const spool = new EventSpool(config.spoolPath ?? ".netsleuth-agent-spool.json");
 
   const collect = async () => {
     if (collecting || stopping) return;
@@ -22,13 +24,16 @@ export const startAgent = (config: AgentConfig, shutdownTimeoutMs = 10000) => {
       const observations = await collectNetworkObservations(shutdown.signal);
       if (observations === null || stopping) return;
       const snapshot = getNewConnectionEvents(observations, connections);
+      if (snapshot.events.length) await spool.enqueue(snapshot.events);
       connections = snapshot.connections;
-      if (snapshot.events.length) {
-        const result = await publishEvents(config, snapshot.events, shutdown.signal);
+      const pendingEvents = await spool.take(100);
+      if (pendingEvents.length) {
+        const result = await publishEvents(config, pendingEvents, shutdown.signal);
+        await spool.acknowledge(pendingEvents.length);
         logger.info(`Connections published: ${result.insertedCount} inserted, ${result.duplicateCount} duplicates`);
       }
     } catch {
-      if (!shutdown.signal.aborted) logger.error("Connection events were not fully delivered; no offline buffer is retained");
+      if (!shutdown.signal.aborted) logger.error("Connection events are buffered for retry");
     } finally {
       collecting = false;
     }

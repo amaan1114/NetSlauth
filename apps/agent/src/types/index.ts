@@ -8,6 +8,7 @@ export type AgentConfig = {
   agentKey: string;
   collectionIntervalMs: number;
   heartbeatIntervalMs: number;
+  spoolPath?: string;
 };
 
 export type IngestionCounts = { insertedCount: number; duplicateCount: number };

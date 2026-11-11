@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ApiError, apiRequestWithRefresh, type Project, type ProjectList, type Workspace, type WorkspaceList } from "@/lib/api";
 import { useAuth } from "./auth-provider";
+import { useProjectRealtime } from "@/hooks/use-project-realtime";
 
 interface DashboardContextValue {
   workspaces: Workspace[];
@@ -17,6 +18,7 @@ interface DashboardContextValue {
   selectProject: (id: string) => void;
   reloadWorkspaces: () => Promise<void>;
   reloadProjects: () => Promise<void>;
+  realtime: ReturnType<typeof useProjectRealtime>;
 }
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
@@ -36,6 +38,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const currentUserId = user?.id ?? "";
   const selectedWorkspaceRef = useRef(selectedWorkspaceId);
   selectedWorkspaceRef.current = selectedWorkspaceId;
+  const realtime = useProjectRealtime(selectedProjectId);
 
   const clearSelections = useCallback(() => {
     setWorkspaces([]);
@@ -173,10 +176,10 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       workspace: workspaces.find((item) => item.id === selectedWorkspaceId) ?? null,
       project: projects.find((item) => item.id === selectedProjectId && item.workspaceId === selectedWorkspaceId) ?? null,
       workspaceLoading, projectLoading, workspaceError, projectError,
-      selectWorkspace, selectProject, reloadWorkspaces, reloadProjects,
+      selectWorkspace, selectProject, reloadWorkspaces, reloadProjects, realtime,
     }),
     [workspaces, projects, selectedWorkspaceId, selectedProjectId, workspaceLoading, projectLoading,
-      workspaceError, projectError, selectWorkspace, selectProject, reloadWorkspaces, reloadProjects],
+      workspaceError, projectError, selectWorkspace, selectProject, reloadWorkspaces, reloadProjects, realtime],
   );
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;

@@ -52,7 +52,8 @@ export const publishEvents = async (
       }
       if (attempt + 1 < maxAttempts) {
         logger.error(`Temporary publish failure; retrying batch (${attempt + 2}/${maxAttempts})`);
-        await delay(retryDelayMs * 2 ** attempt, undefined, { signal });
+        const jitter = Math.floor(Math.random() * Math.max(1, retryDelayMs / 2));
+        await delay(retryDelayMs * 2 ** attempt + jitter, undefined, { signal });
       }
     }
     if (!delivered) throw new Error("Event publishing failed after bounded retries");

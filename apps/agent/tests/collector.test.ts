@@ -74,7 +74,7 @@ test("connection tracking is bounded", (t) => {
   assert.equal(snapshot.events.length, MAX_TRACKED_CONNECTIONS);
 });
 
-test("ss runs without a shell, credentials or application process details", async () => {
+test("ss runs without a shell, credentials or application process details", { skip: process.platform !== "linux" }, async () => {
   let called = false;
   const observations = await collectNetworkObservations(undefined, async (file, args, options) => {
     called = true;
@@ -88,7 +88,7 @@ test("ss runs without a shell, credentials or application process details", asyn
   assert.equal(observations?.length, 1);
 });
 
-test("missing ss, permission and execution errors are safe failed snapshots, not empty successful snapshots", async (t) => {
+test("missing ss, permission and execution errors are safe failed snapshots, not empty successful snapshots", { skip: process.platform !== "linux" }, async (t) => {
   const messages: string[] = [];
   t.mock.method(logger, "error", (message: string) => messages.push(message));
   for (const code of ["ENOENT", "EACCES", "EPERM", "ETIMEDOUT"]) {

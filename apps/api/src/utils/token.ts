@@ -27,7 +27,7 @@ export const verifyToken = (token: string, type: "access" | "refresh") => {
         typeof payload.exp !== "number" || payload.type !== type) {
       throw new Error("Invalid token");
     }
-    return { userId: payload.sub };
+    return { userId: payload.sub, expiresAt: payload.exp };
   } catch {
     throw new HttpError(401, `Invalid or expired ${type} token`);
   }

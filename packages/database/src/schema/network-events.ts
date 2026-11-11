@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm";
-import { check, index, inet, integer, jsonb, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { check, index, inet, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { agents } from "./agents.js";
+
+export const detectionStatus = pgEnum("detection_status", ["PENDING", "PROCESSED"]);
 
 export const networkEvents = pgTable("network_events", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -15,6 +17,7 @@ export const networkEvents = pgTable("network_events", {
   metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}).notNull(),
   occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
   receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+  detectionStatus: detectionStatus("detection_status").default("PENDING").notNull(),
 }, (table) => [
   unique("network_events_agent_event_unique").on(table.agentId, table.eventId),
   index("network_events_agent_time_idx").on(table.agentId, table.occurredAt.desc()),
@@ -22,6 +25,7 @@ export const networkEvents = pgTable("network_events", {
   index("network_events_occurred_at_idx").on(table.occurredAt.desc()),
   index("network_events_source_time_idx").on(table.sourceIp, table.occurredAt.desc()),
   index("network_events_destination_time_idx").on(table.destinationIp, table.occurredAt.desc()),
+  index("network_events_detection_status_idx").on(table.detectionStatus, table.receivedAt),
   check("network_events_source_port_range", sql`${table.sourcePort} BETWEEN 0 AND 65535`),
   check("network_events_destination_port_range", sql`${table.destinationPort} BETWEEN 0 AND 65535`),
   check("network_events_event_id_not_empty", sql`length(trim(${table.eventId})) > 0`),

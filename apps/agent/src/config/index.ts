@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import type { AgentConfig } from "../types/index.js";
 
 export const loadAgentEnv = () => {
@@ -40,5 +41,6 @@ export const readConfig = (env: NodeJS.ProcessEnv = process.env): AgentConfig =>
     agentKey,
     collectionIntervalMs: interval("COLLECTION_INTERVAL_MS", 10000),
     heartbeatIntervalMs: interval("HEARTBEAT_INTERVAL_MS", 30000),
+    ...(env.NETSLEUTH_SPOOL_PATH ? { spoolPath: resolve(env.NETSLEUTH_SPOOL_PATH) } : {}),
   };
 };

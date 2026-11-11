@@ -19,10 +19,11 @@ function SkeletonRows() {
   </div>;
 }
 
-function ProjectAgents({ projectId, projectName, onRegister }: {
+function ProjectAgents({ projectId, projectName, onRegister, realtimeVersion }: {
   projectId: string;
   projectName: string;
   onRegister: (registration: Registration) => void;
+  realtimeVersion: number;
 }) {
   const { clearAuth } = useAuth();
   const [agents, setAgents] = useState<Agent[] | null>(null);
@@ -86,6 +87,7 @@ function ProjectAgents({ projectId, projectName, onRegister }: {
       detailRequestId.current += 1;
     };
   }, [loadAgents]);
+  useEffect(() => { if (realtimeVersion) void loadAgents(true); }, [loadAgents, realtimeVersion]);
 
   async function submitRegistration(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -305,7 +307,7 @@ interface ScopedRegistration extends Registration {
 
 export function AgentsContent() {
   const { user } = useAuth();
-  const { project, workspace, workspaceLoading, projectLoading, workspaces, projects, workspaceError, projectError, reloadWorkspaces, reloadProjects } = useDashboard();
+  const { project, workspace, workspaceLoading, projectLoading, workspaces, projects, workspaceError, projectError, reloadWorkspaces, reloadProjects, realtime } = useDashboard();
   const [registration, setRegistration] = useState<ScopedRegistration | null>(null);
   const activeProjectId = project?.id ?? "";
 
@@ -325,7 +327,7 @@ export function AgentsContent() {
         : !workspaces.length ? <div className="agents-no-scope"><h1>No workspace available</h1><p>Agents are managed within a project. Select or join a workspace to continue.</p></div>
           : !projects.length ? <div className="agents-no-scope"><h1>No project available</h1><p>Choose a workspace with an authorized project to manage its collectors.</p></div>
             : !project ? <div className="agents-no-scope"><h1>Select a project</h1><p>Choose an authorized project from the selector above.</p></div>
-              : <ProjectAgents key={project.id} projectId={project.id} projectName={project.name} onRegister={(value) => {
+              : <ProjectAgents key={project.id} projectId={project.id} projectName={project.name} realtimeVersion={realtime.agentVersion} onRegister={(value) => {
                 if (user?.id && workspace?.id) setRegistration({ ...value, projectId: project.id, workspaceId: workspace.id, userId: user.id });
               }} />}
     {registration && user?.id === registration.userId && activeProjectId === registration.projectId && <RegistrationSetup key={registration.agent.id} projectName={project?.name ?? ""} registration={registration} onClose={() => setRegistration(null)} />}

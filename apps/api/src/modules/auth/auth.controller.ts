@@ -7,6 +7,8 @@ import {
   signUpService, signInService, getMeService,
   refreshTokenService,
 } from "./auth.service.js";
+import { disconnectUserSockets } from "../../realtime.js";
+import { verifyToken } from "../../utils/token.js";
 
 export const signUpController: RequestHandler = async (req, res, next) => {
   try {
@@ -49,6 +51,7 @@ export const refreshSessionController: RequestHandler = async (req, res, next) =
       throw new HttpError(401, "Refresh cookie is required");
     }
     const { user, accessToken, refreshToken, refreshLifetime } = await refreshTokenService(token);
+    disconnectUserSockets(user.id);
     res.cookie("netsleuth_access", accessToken, { ...cookieConfig, maxAge: env.JWT_ACCESS_TTL_SECONDS * 1000 });
     res.cookie("netsleuth_refresh", refreshToken, { ...refreshCookieConfig, maxAge: refreshLifetime * 1000 });
     return res.json(new HttpResponse(200, "Session refreshed", { user }));
@@ -63,6 +66,14 @@ export const refreshSessionController: RequestHandler = async (req, res, next) =
 
 export const logoutController: RequestHandler = async (req, res, next) => {
   try {
+    const accessToken = req.cookies.netsleuth_access;
+    if (typeof accessToken === "string") {
+      try {
+        disconnectUserSockets(verifyToken(accessToken, "access").userId);
+      } catch {
+        // Logout remains successful even when the access cookie is expired.
+      }
+    }
     res.clearCookie("netsleuth_access", cookieConfig);
     res.clearCookie("netsleuth_refresh", refreshCookieConfig);
     return res.json(new HttpResponse(200, "Logout successful"));
@@ -70,4 +81,3 @@ export const logoutController: RequestHandler = async (req, res, next) => {
     next(error);
   }
 };
-

@@ -23,11 +23,6 @@ function readableError(error: unknown) {
   return error instanceof ApiError ? error.message : "The status change could not be saved. Try again.";
 }
 
-function display(value: unknown): string {
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
-  return "Unavailable";
-}
-
 function AlertSkeleton() {
   return <div className="alerts-skeleton" aria-label="Loading security alerts" aria-busy="true">
     {[0, 1, 2, 3, 4].map((row) => <div className="alerts-skeleton-row" key={row}>{[0, 1, 2, 3, 4, 5].map((cell) => <span className="skeleton" key={cell} />)}</div>)}
@@ -85,7 +80,6 @@ function AlertInvestigation({ projectId, projectName, alertId, onClose, onAlertU
       ? "This rule compares a reported connection to the project’s configured database ports and allowed destinations."
       : alert?.description ?? "The stored alert description is the available rule context.";
   const evidence = alert?.evidence ?? {};
-  const evidenceEntries = Object.entries(evidence);
   const refs = Array.isArray(evidence.events) ? evidence.events.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object") : [];
   const eventReferenceIds = refs.map((item) => item.id).filter((id): id is string => typeof id === "string");
   const eventsAvailable = Boolean(related?.events.length);
@@ -117,6 +111,7 @@ function AlertInvestigation({ projectId, projectName, alertId, onClose, onAlertU
     : alert?.status === "ACKNOWLEDGED"
       ? [{ status: "RESOLVED" as const, label: "Resolve" }, { status: "OPEN" as const, label: "Reopen" }]
       : alert ? [{ status: "OPEN" as const, label: "Reopen" }] : [];
+  const hasDatabasePolicy = typeof evidence.databasePolicy === "object" && evidence.databasePolicy !== null;
 
   return <>
     <dialog ref={dialogRef} className="alert-investigation-dialog" aria-labelledby="alert-investigation-title"
@@ -146,7 +141,7 @@ function AlertInvestigation({ projectId, projectName, alertId, onClose, onAlertU
                   <div><span>Alert updated</span><strong>{formatEventDate(alert.updatedAt)}</strong></div>
                 </div>
                 <div className="alert-status-actions" aria-label="Alert status actions">
-                  {nextStatus.map(({ status, label }) => <Button key={status} type="button" variant={status === "RESOLVED" ? "secondary" : "outline"} size="sm" disabled={pending} onClick={() => setConfirmStatus(status)} data-testid={`button-alert-${label.toLowerCase()}`}>{label}</Button>)}
+                  {nextStatus.map(({ status, label }) => <Button key={status} type="button" variant={status === "RESOLVED" ? "secondary" : "primary"} size="sm" disabled={pending} onClick={() => setConfirmStatus(status)} data-testid={`button-alert-${label.toLowerCase()}`}>{label}</Button>)}
                   {pending && <span role="status">Saving status…</span>}
                 </div>
                 {mutationError && <p className="alert-mutation-error" role="alert">{mutationError}</p>}
@@ -167,7 +162,7 @@ function AlertInvestigation({ projectId, projectName, alertId, onClose, onAlertU
                     return <div className="alert-evidence-item" key={key}><span>{key.replace(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`)}</span><EvidenceValue value={available ? value : undefined} /></div>;
                   })}
                 </div>
-                {evidence.databasePolicy && typeof evidence.databasePolicy === "object" && <div className="alert-policy-box"><h4>Database policy snapshot in evidence</h4><pre>{JSON.stringify(evidence.databasePolicy, null, 2)}</pre></div>}
+                {hasDatabasePolicy && <div className="alert-policy-box"><h4>Database policy snapshot in evidence</h4><pre>{JSON.stringify(evidence.databasePolicy, null, 2)}</pre></div>}
                 <div className="alert-policy-box"><h4>Evidence references</h4>
                   {typeof evidence.eventId === "string" && <p>Public event ID <code>{evidence.eventId}</code></p>}
                   {Array.isArray(evidence.eventIds) && <p>Referenced public event IDs <code>{evidence.eventIds.filter((item): item is string => typeof item === "string").join(", ") || "Unavailable"}</code></p>}
@@ -196,7 +191,7 @@ function AlertInvestigation({ projectId, projectName, alertId, onClose, onAlertU
                 {relatedLoading ? <div className="alert-detail-loading"><span className="skeleton" /><span className="skeleton" /></div>
                   : related?.events.length ? <div className="alert-related-list">{related.events.map((event) => <div className="alert-related-event" key={event.id}>
                     <div><strong>{eventTypeLabel(event.eventType)}</strong><span>{event.sourceIp}:{event.sourcePort ?? "Unavailable"} → {event.destinationIp}:{event.destinationPort ?? "Unavailable"} · {event.protocol}</span><time>{formatEventDate(event.occurredAt)}</time></div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => { setSelectedEvent(event.id); setEventHint(""); }} data-testid={`button-open-related-event-${event.id}`}>Inspect record</Button>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => { setSelectedEvent(event.id); setEventHint(""); }} data-testid={`button-open-related-event-${event.id}`}>Inspect record</Button>
                   </div>)}</div>
                     : !relatedError && <div className="alert-related-empty"><strong>{eventsAvailable ? "No events on this page" : "No linked event records returned"}</strong><span>{eventReferenceIds.length || typeof evidence.eventId === "string" ? "The alert includes references, but no matching stored event is currently available in this result." : "The stored evidence has no explicit references for opening event records."}</span></div>}
                 {related && (related.pagination.page > 1 || related.pagination.hasMore) && <div className="alert-related-pagination"><button type="button" className="events-page-button" disabled={related.pagination.page <= 1 || relatedLoading} onClick={() => setRelatedPage((value) => Math.max(1, value - 1))}>Previous events</button><button type="button" className="events-page-button" disabled={!related.pagination.hasMore || relatedLoading} onClick={() => setRelatedPage((value) => value + 1)}>More events</button></div>}
@@ -210,13 +205,13 @@ function AlertInvestigation({ projectId, projectName, alertId, onClose, onAlertU
     {confirmStatus && <dialog className="agent-dialog agent-confirm-dialog" open aria-labelledby="alert-confirm-title">
       <div className="agent-dialog-head"><div><h2 id="alert-confirm-title">{confirmStatus === "RESOLVED" ? "Resolve this alert?" : confirmStatus === "ACKNOWLEDGED" ? "Acknowledge this alert?" : "Reopen this alert?"}</h2><p>This changes only the alert status. Observation timestamps and evidence remain unchanged.</p></div></div>
       <div className="revoke-summary"><strong>{alert?.title}</strong><span>Current status: {alert?.status} · New status: {confirmStatus}</span></div>
-      <div className="agent-dialog-actions"><Button type="button" variant="secondary" disabled={pending} onClick={() => setConfirmStatus(null)}>Cancel</Button><Button type="button" variant={confirmStatus === "RESOLVED" ? "danger" : "default"} disabled={pending} onClick={() => void saveStatus()}>{pending ? "Saving…" : `Confirm ${confirmStatus.toLowerCase()}`}</Button></div>
+      <div className="agent-dialog-actions"><Button type="button" variant="secondary" disabled={pending} onClick={() => setConfirmStatus(null)}>Cancel</Button><Button type="button" variant={confirmStatus === "RESOLVED" ? "danger" : "primary"} disabled={pending} onClick={() => void saveStatus()}>{pending ? "Saving…" : `Confirm ${confirmStatus.toLowerCase()}`}</Button></div>
     </dialog>}
     <EventDetailDialog projectId={projectId} recordId={selectedEvent} onClose={() => setSelectedEvent(null)} />
   </>;
 }
 
-function ProjectAlerts({ projectId, projectName }: { projectId: string; projectName: string }) {
+function ProjectAlerts({ projectId, projectName, realtimeVersion }: { projectId: string; projectName: string; realtimeVersion: number }) {
   const { clearAuth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -228,6 +223,7 @@ function ProjectAlerts({ projectId, projectName }: { projectId: string; projectN
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [updatedAlert, setUpdatedAlert] = useState<InvestigationAlert | undefined>();
   const previousProject = useRef(projectId);
+  useEffect(() => { if (realtimeVersion) setRefreshNonce((value) => value + 1); }, [realtimeVersion]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedText({ ruleId: filters.ruleId, sourceIp: filters.sourceIp }), 350);
@@ -243,8 +239,6 @@ function ProjectAlerts({ projectId, projectName }: { projectId: string; projectN
       setUpdatedAlert(undefined);
       if (alertId) clearAlertQuery();
     }
-    // The query is intentionally observed on project transitions.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   function clearAlertQuery() {
@@ -323,12 +317,12 @@ function ProjectAlerts({ projectId, projectName }: { projectId: string; projectN
 }
 
 export function AlertsContent() {
-  const { project, workspaceLoading, projectLoading, workspaces, projects, workspaceError, projectError, reloadWorkspaces, reloadProjects } = useDashboard();
+  const { project, workspaceLoading, projectLoading, workspaces, projects, workspaceError, projectError, reloadWorkspaces, reloadProjects, realtime } = useDashboard();
   const scopeLoading = workspaceLoading || projectLoading;
   if (scopeLoading) return <div className="alerts-page-loading" aria-label="Loading project scope" aria-busy="true"><span className="skeleton" /><span className="skeleton" /><span className="skeleton" /></div>;
   if (workspaceError || projectError) return <div className="agents-scope-error" role="alert"><div><strong>Could not load project scope</strong><p>{workspaceError ?? projectError}</p><button className="retry-button" type="button" onClick={() => void (workspaceError ? reloadWorkspaces() : reloadProjects())}>Retry scope loading</button></div></div>;
   if (!workspaces.length) return <div className="agents-no-scope"><h1>No workspace available</h1><p>Security alerts are visible only within an authorized project.</p></div>;
   if (!projects.length) return <div className="agents-no-scope"><h1>No project available</h1><p>Choose a workspace with an authorized project to review alert evidence.</p></div>;
   if (!project) return <div className="agents-no-scope"><h1>Select a project</h1><p>Choose an authorized project from the selector above.</p></div>;
-  return <ProjectAlerts projectId={project.id} projectName={project.name} />;
+  return <ProjectAlerts projectId={project.id} projectName={project.name} realtimeVersion={realtime.alertVersion} />;
 }

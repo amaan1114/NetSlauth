@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DashboardRange } from "@workspace/netsleuth-shared";
 import { PageHeading } from "@/components/dashboard/page-heading";
 import { useDashboard } from "@/components/providers/dashboard-provider";
@@ -17,10 +17,11 @@ import {
 } from "@/components/dashboard/overview-panels";
 
 export function OverviewContent() {
-  const { workspace, project, workspaces, projects, workspaceLoading, projectLoading, workspaceError, projectError, reloadProjects, reloadWorkspaces } = useDashboard();
+  const { workspace, project, workspaces, projects, workspaceLoading, projectLoading, workspaceError, projectError, reloadProjects, reloadWorkspaces, realtime } = useDashboard();
   const [range, setRange] = useState<DashboardRange>("24h");
   const projectId = project?.id ?? "";
   const { summary, activity, refresh } = useDashboardOverview(projectId, range);
+  useEffect(() => { if (realtime.networkEventVersion || realtime.alertVersion || realtime.agentVersion) refresh(); }, [realtime.agentVersion, realtime.alertVersion, realtime.networkEventVersion, refresh]);
   const scopeLoading = workspaceLoading || projectLoading;
 
   return (

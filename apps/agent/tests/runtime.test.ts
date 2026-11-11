@@ -78,7 +78,7 @@ test("SIGINT/SIGTERM stop timers and drain pending HTTP; a deadline cancels stal
   }
 });
 
-test("a temporary API outage exhausts bounded retries without crashing; polling and heartbeats recover", { timeout: 10000 }, async () => {
+test("a temporary API outage exhausts bounded retries without crashing; polling and heartbeats recover", { timeout: 10000, skip: process.platform !== "linux" }, async () => {
   const directory = await mkdtemp(join(tmpdir(), "netsleuth-agent-outage-"));
   const marker = join(directory, "polls");
   const bin = join(directory, "bin");

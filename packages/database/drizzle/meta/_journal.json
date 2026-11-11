@@ -29,6 +29,13 @@
       "when": 1794210042729,
       "tag": "0003_misty_adam_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794211000000,
+      "tag": "0004_detection_status",
+      "breakpoints": true
     }
   ]
 }

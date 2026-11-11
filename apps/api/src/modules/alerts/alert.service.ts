@@ -6,6 +6,7 @@ import { HttpError } from "../../utils/HttpError.js";
 import { redactEventMetadata } from "../events/event-explorer.service.js";
 import { findAlertAgent, findProjectAlert, listAlertRelatedEvents, listProjectAlerts, updateProjectAlertStatus } from "./alert.repo.js";
 import type { alertQuerySchema } from "./alert.validation.js";
+import { emitProjectRealtime } from "../../realtime.js";
 
 const publicAlert = (alert: SecurityAlert): InvestigationAlert => ({
   ...alert,
@@ -36,6 +37,21 @@ export const setAlertStatusService = async (userId: string, projectId: string, a
   const alert = await updateProjectAlertStatus(projectId, alertId, status);
   if (!alert) throw new HttpError(404, "Alert not found");
   const agent = alert.agentId ? await findAlertAgent(projectId, alert.agentId) : null;
+  emitProjectRealtime(projectId, {
+    name: "alert:updated",
+    payload: {
+      id: alert.id,
+      projectId: alert.projectId,
+      title: alert.title,
+      severity: alert.severity,
+      status: alert.status,
+      ruleId: alert.ruleId,
+      firstSeenAt: alert.firstSeenAt.toISOString(),
+      lastSeenAt: alert.lastSeenAt.toISOString(),
+      createdAt: alert.createdAt.toISOString(),
+      updatedAt: alert.updatedAt.toISOString(),
+    },
+  });
   return { alert: publicAlert(alert), agent };
 };
 

@@ -26,7 +26,7 @@ function shortProjectId(value: string) {
   return value.length > 16 ? `${value.slice(0, 8)}…${value.slice(-5)}` : value;
 }
 
-function ProjectEvents({ projectId, projectName }: { projectId: string; projectName: string }) {
+function ProjectEvents({ projectId, projectName, realtimeVersion }: { projectId: string; projectName: string; realtimeVersion: number }) {
   const { clearAuth } = useAuth();
   const [filters, setFilters] = useState<EventFilters>(EMPTY_EVENT_FILTERS);
   const [debouncedText, setDebouncedText] = useState({
@@ -39,6 +39,7 @@ function ProjectEvents({ projectId, projectName }: { projectId: string; projectN
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState("");
+  useEffect(() => { if (realtimeVersion) setRefreshNonce((value) => value + 1); }, [realtimeVersion]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -158,7 +159,7 @@ function ProjectEvents({ projectId, projectName }: { projectId: string; projectN
 }
 
 export function EventsContent() {
-  const { project, workspaceLoading, projectLoading, workspaces, projects, workspaceError, projectError, reloadWorkspaces, reloadProjects } = useDashboard();
+  const { project, workspaceLoading, projectLoading, workspaces, projects, workspaceError, projectError, reloadWorkspaces, reloadProjects, realtime } = useDashboard();
   const scopeLoading = workspaceLoading || projectLoading;
 
   if (scopeLoading) return <div className="events-scope-loading" aria-label="Loading project scope" aria-busy="true"><span className="skeleton" /><span className="skeleton" /><span className="skeleton" /></div>;
@@ -171,5 +172,5 @@ export function EventsContent() {
   if (!workspaces.length) return <div className="events-no-scope"><h1>No workspace available</h1><p>Network events are visible within an authorized project. Join or select a workspace to continue.</p></div>;
   if (!projects.length) return <div className="events-no-scope"><h1>No project available</h1><p>Choose a workspace with an authorized project to inspect its event records.</p></div>;
   if (!project) return <div className="events-no-scope"><h1>Select a project</h1><p>Choose an authorized project from the selector above.</p></div>;
-  return <ProjectEvents key={project.id} projectId={project.id} projectName={project.name} />;
+  return <ProjectEvents key={project.id} projectId={project.id} projectName={project.name} realtimeVersion={realtime.networkEventVersion} />;
 }

@@ -4,6 +4,7 @@ import { db } from "../../services/database.js";
 import { HttpError } from "../../utils/HttpError.js";
 import { getProjectService } from "../projects/project.service.js";
 import { createAgent, getUserAgent, revokeAgent, getAgentByKeyHash } from "./agent.repo.js";
+import { emitProjectRealtime } from "../../realtime.js";
 
 export const hashAgentKey = (apiKey: string) => createHash("sha256").update(apiKey).digest("hex");
 
@@ -31,6 +32,15 @@ export const revokeAgentService = async (userId: string, agentId: string) => {
   if (agent.revokedAt) return agent;
   const revoked = await revokeAgent(agent.id, agent.projectId);
   if (!revoked) throw new HttpError(404, "Agent not found");
+  emitProjectRealtime(agent.projectId, {
+    name: "agent:status",
+    payload: {
+      projectId: agent.projectId,
+      agentId: agent.id,
+      status: revoked.status,
+      lastHeartbeatAt: revoked.lastHeartbeatAt?.toISOString() ?? null,
+    },
+  });
   return revoked;
 };
 
